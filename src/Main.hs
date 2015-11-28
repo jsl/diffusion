@@ -14,10 +14,9 @@ import Turtle.Prelude
 import Turtle.Shell (using, sh, Shell(..), view)
 import Turtle.Format (repr)
 import Control.Applicative (empty)
-import Network.HTTP.Types.Header (hLastModified)
+import Network.HTTP.Types.Header (hLastModified, ResponseHeaders)
 import GHC.IO.Exception (ExitCode(ExitSuccess))
 import GHC.Exception (SomeException(..))
-import Network.HTTP.Types.Header (ResponseHeaders)
 import System.Environment (getEnv)
 import Filesystem.Path ((</>))
 
@@ -65,7 +64,7 @@ getIfModifiedSince path outputFile url = do
                     do
                       t <- input path
                       return [("If-Modified-Since", BS8.pack $ T.unpack t)]
-                    else do
+                    else
                       return []
 
   let req2 = req { HC.requestHeaders = reqHeaders
@@ -118,7 +117,7 @@ filepathToText fp = case FPCOS.toText fp of
 -- processing, and installs artifacts to the correct location.
 installDependency :: FP.FilePath -> FP.FilePath -> DownloadJob -> Shell ()
 installDependency statPath tmpPath dj = do
-  let statFilePath = statPath </> FPCOS.fromText ((jobName dj) <> "-mtime.txt")
+  let statFilePath = statPath </> FPCOS.fromText (jobName dj <> "-mtime.txt")
 
   tmpDir <- using (mktempdir tmpPath (jobName dj))
 
@@ -178,8 +177,8 @@ downloadJobs binPath dataPath region country =
   , DownloadJob
       { jobName = region <> "-" <> country
       , outputName = FPCOS.fromText countryFname
-      , mvSrc = FPCOS.fromText $ countryFname
-      , mvDest = dataPath </> (FPCOS.fromText countryFname)
+      , mvSrc = FPCOS.fromText countryFname
+      , mvDest = dataPath </> FPCOS.fromText countryFname
       , sourceURL = "http://download.geofabrik.de/" <> region <> "/" <>
                     countryFname
       , unpackCmd = Nothing }
