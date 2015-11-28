@@ -150,29 +150,14 @@ mkgmapRel = 3652
 splitterRel :: Int
 splitterRel = 427
 
-main :: IO ()
-main = do
-  region   <- liftM T.pack $ getEnv "MAP_REGION"
-  country  <- liftM T.pack $ getEnv "MAP_COUNTRY"
-
-  appPath  <- userEzGmapDirectory
-  statPath <- statDir
-
-  sh $ do
-
-    let binPath      = appPath </> "bin"
-        dataPath     = appPath </> "data"
-        tmpPath      = appPath </> "tmp"
-        outputPath   = appPath </> "output"
-        countryFname = country <> "-latest.osm.pbf"
-
-    isDir <- testdir outputPath
-    when isDir $ rmtree outputPath
-
-    mapM_ mktree [statPath, binPath, dataPath, tmpPath, outputPath]
-
-    mapM_ (installDependency statPath tmpPath)
-      [ DownloadJob { jobName = "mkgmap"
+-- | Describes dependencies to be installed.
+downloadJobs :: FP.FilePath -- ^ Path where binaries are installed
+             -> FP.FilePath -- ^ Path where data files are installed
+             -> T.Text -- ^ Region being mapped
+             -> T.Text -- ^ Country (in region) being mapped
+             -> [DownloadJob] -- ^ Returned list of dependencies
+downloadJobs binPath dataPath region country =
+  [ DownloadJob { jobName = "mkgmap"
                     , outputName = "mkgmap.zip"
                     , mvSrc = FPCOS.fromText $ "mkgmap-r" <> repr mkgmapRel
                     , mvDest = binPath </> "mkgmap"
@@ -222,6 +207,31 @@ main = do
                       "gmapi-builder.tar.gz"
                     , unpackCmd = Just "tar -xvzf gmapi-builder.tar.gz" }
       ]
+
+  where countryFname = country <> "-latest.osm.pbf"
+
+main :: IO ()
+main = do
+  region   <- liftM T.pack $ getEnv "MAP_REGION"
+  country  <- liftM T.pack $ getEnv "MAP_COUNTRY"
+
+  appPath  <- userEzGmapDirectory
+  statPath <- statDir
+
+  sh $ do
+
+    let binPath      = appPath </> "bin"
+        dataPath     = appPath </> "data"
+        tmpPath      = appPath </> "tmp"
+        outputPath   = appPath </> "output"
+
+    isDir <- testdir outputPath
+    when isDir $ rmtree outputPath
+
+    mapM_ mktree [statPath, binPath, dataPath, tmpPath, outputPath]
+
+    mapM_ (installDependency statPath tmpPath)
+      (downloadJobs binPath dataPath region country)
 
     echo "Starting to split..."
 
