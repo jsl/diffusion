@@ -10,8 +10,10 @@ Currently osm2gmap works to generate maps for single countries or
 regions, where maps are available for download from [Geofabrik data
 extracts](http://download.geofabrik.de/).
 
-osm2gmap uses splitter, mkgmap, and gmapi-builder to generate
-maps. osm2gmap automatically downloads and installs these
+osm2gmap uses [splitter](http://www.mkgmap.org.uk/doc/splitter.html),
+[mkgmap](http://www.mkgmap.org.uk/doc/index.html), and
+[gmapi-builder](http://wiki.openstreetmap.org/wiki/Gmapibuilder) to
+generate maps. osm2gmap automatically downloads and installs these
 dependencies, as well as the most recent sea and bounds files.
 
 ## Systems Supported
