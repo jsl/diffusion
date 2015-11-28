@@ -35,10 +35,7 @@ directory where the project was unpacked. Then, build the project with
 # Running osm2gmap
 
 Tell osm2gmap which region and country to build maps for by
-setting the following two environment variables:
-
-* `MAP_REGION`
-* `MAP_COUNTRY`
+setting the environment variables `MAP_REGION` and `MAP_COUNTRY`.
 
 For both `MAP_REGION` and `MAP_COUNTRY`, you should follow the
 hyphenated form that is present in the URL of the file you wish to use
