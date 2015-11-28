@@ -157,56 +157,60 @@ downloadJobs :: FP.FilePath -- ^ Path where binaries are installed
              -> T.Text -- ^ Country (in region) being mapped
              -> [DownloadJob] -- ^ Returned list of dependencies
 downloadJobs binPath dataPath region country =
-  [ DownloadJob { jobName = "mkgmap"
-                    , outputName = "mkgmap.zip"
-                    , mvSrc = FPCOS.fromText $ "mkgmap-r" <> repr mkgmapRel
-                    , mvDest = binPath </> "mkgmap"
-                    , sourceURL =
-                      "http://www.mkgmap.org.uk/download/mkgmap-r" <>
-                      repr mkgmapRel <> ".zip"
-                    , unpackCmd = Just "unzip mkgmap.zip" }
+  [ DownloadJob
+      { jobName = "mkgmap"
+      , outputName = "mkgmap.zip"
+      , mvSrc = FPCOS.fromText $ "mkgmap-r" <> repr mkgmapRel
+      , mvDest = binPath </> "mkgmap"
+      , sourceURL = "http://www.mkgmap.org.uk/download/mkgmap-r" <>
+                    repr mkgmapRel <> ".zip"
+      , unpackCmd = Just "unzip mkgmap.zip" }
 
-      , DownloadJob { jobName = "splitter"
-                    , outputName = "splitter.zip"
-                    , mvSrc = FPCOS.fromText $ "splitter-r" <> repr splitterRel
-                    , mvDest = binPath </> "splitter"
-                    , sourceURL = "http://www.mkgmap.org.uk/download/splitter-r"
-                                  <> repr splitterRel <> ".zip"
-                    , unpackCmd = Just "unzip splitter.zip" }
+  , DownloadJob
+      { jobName = "splitter"
+      , outputName = "splitter.zip"
+      , mvSrc = FPCOS.fromText $ "splitter-r" <> repr splitterRel
+      , mvDest = binPath </> "splitter"
+      , sourceURL = "http://www.mkgmap.org.uk/download/splitter-r"
+                    <> repr splitterRel <> ".zip"
+      , unpackCmd = Just "unzip splitter.zip" }
 
-      , DownloadJob { jobName = region <> "-" <> country
-                    , outputName = FPCOS.fromText countryFname
-                    , mvSrc = FPCOS.fromText $ countryFname
-                    , mvDest = dataPath </> (FPCOS.fromText countryFname)
-                    , sourceURL = "http://download.geofabrik.de/" <>
-                                  region <> "/" <> countryFname
-                    , unpackCmd = Nothing }
+  , DownloadJob
+      { jobName = region <> "-" <> country
+      , outputName = FPCOS.fromText countryFname
+      , mvSrc = FPCOS.fromText $ countryFname
+      , mvDest = dataPath </> (FPCOS.fromText countryFname)
+      , sourceURL = "http://download.geofabrik.de/" <> region <> "/" <>
+                    countryFname
+      , unpackCmd = Nothing }
 
-      , DownloadJob { jobName = "bounds"
-                    , outputName = "bounds.zip"
-                    , mvSrc = "bounds.zip"
-                    , mvDest = dataPath </> "bounds.zip"
-                    , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/" <>
-                                  "bounds/latest/bounds.zip"
-                    , unpackCmd = Nothing }
+  , DownloadJob
+      { jobName = "bounds"
+      , outputName = "bounds.zip"
+      , mvSrc = "bounds.zip"
+      , mvDest = dataPath </> "bounds.zip"
+      , sourceURL =
+        "http://osm2.pleiades.uni-wuppertal.de/bounds/latest/bounds.zip"
+      , unpackCmd = Nothing }
 
-      , DownloadJob { jobName = "sea"
-                    , outputName = "sea.zip"
-                    , mvSrc = "sea.zip"
-                    , mvDest = dataPath </> "sea.zip"
-                    , sourceURL =
-                      "http://osm2.pleiades.uni-wuppertal.de/sea/latest/sea.zip"
-                    , unpackCmd = Nothing }
+  , DownloadJob
+      { jobName = "sea"
+      , outputName = "sea.zip"
+      , mvSrc = "sea.zip"
+      , mvDest = dataPath </> "sea.zip"
+      , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/sea/latest/sea.zip"
+      , unpackCmd = Nothing }
 
-      , DownloadJob { jobName = "gmapi-builder"
-                    , outputName = "gmapi-builder.tar.gz"
-                    , mvSrc = "gmapi-builder/gmapi-builder.py"
-                    , mvDest = binPath </> "gmapi-builder.py"
-                    , sourceURL =
-                      "http://bitbucket.org/berteun/gmapibuilder/downloads/" <>
-                      "gmapi-builder.tar.gz"
-                    , unpackCmd = Just "tar -xvzf gmapi-builder.tar.gz" }
-      ]
+  , DownloadJob
+      { jobName = "gmapi-builder"
+      , outputName = "gmapi-builder.tar.gz"
+      , mvSrc = "gmapi-builder/gmapi-builder.py"
+      , mvDest = binPath </> "gmapi-builder.py"
+      , sourceURL =
+        "http://bitbucket.org/berteun/gmapibuilder/downloads/" <>
+        "gmapi-builder.tar.gz"
+      , unpackCmd = Just "tar -xvzf gmapi-builder.tar.gz" }
+  ]
 
   where countryFname = country <> "-latest.osm.pbf"
 
@@ -263,14 +267,14 @@ main = do
     let mapName = "OSM " <> country
 
     let mkgmapCmd =
-          "java -jar mkgmap/mkgmap.jar" <> " --route" <> " --add-pois-to-areas" <>
-          " --family-name=\"" <>  mapName <> "\"" <> " --series-name=\"" <>
-          mapName <> "\"" <> " --description=\"" <> mapName <> "\"" <>
-          " --mapname=55500001" <> " --latin1" <> " --precomp-sea=" <>
-          filepathToText dataPath <> "/sea.zip" <> " --bounds=" <>
-          filepathToText dataPath <> "/bounds.zip" <> " --index" <>
-          " --output-dir=" <> filepathToText mkgmapOutputPath <> " --gmapsupp " <>
-          filepathToText splitOutputPath <> "/*.osm.pbf"
+          "java -jar mkgmap/mkgmap.jar" <> " --route" <>
+          " --add-pois-to-areas" <> " --family-name=\"" <>  mapName <> "\"" <>
+          " --series-name=\"" <> mapName <> "\"" <> " --description=\"" <>
+          mapName <> "\"" <> " --mapname=55500001" <> " --latin1" <>
+          " --precomp-sea=" <> filepathToText dataPath <> "/sea.zip" <>
+          " --bounds=" <> filepathToText dataPath <> "/bounds.zip" <>
+          " --index" <> " --output-dir=" <> filepathToText mkgmapOutputPath <>
+          " --gmapsupp " <> filepathToText splitOutputPath <> "/*.osm.pbf"
 
     echo "Starting to make map..."
 
