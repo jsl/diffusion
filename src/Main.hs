@@ -192,7 +192,7 @@ main = sh $ do
                                 <> repr splitterRel <> ".zip"
                   , unpackCmd = Just "unzip splitter.zip" }
 
-    , DownloadJob { jobName = "country"
+    , DownloadJob { jobName = region <> "-" <> country
                   , outputName = FPCOS.fromText countryFname
                   , tmpPath = tpath
                   , mvSrc = FPCOS.fromText $ countryFname
