@@ -29,7 +29,7 @@ execute the following commands:
 
 ```
 stack build
-MAP_COUNTRY=ecuador MAP_REGION=south-america stack exec
+MAP_COUNTRY=ecuador MAP_REGION=south-america stack exec osm2gmap
 ```
 
 This should generate maps for your Garmin device and Basecamp for
