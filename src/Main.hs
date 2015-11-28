@@ -35,7 +35,6 @@ data DownloadJob = DownloadJob
     { jobName    :: T.Text
     , outputName :: FP.FilePath
     , sourceURL  :: URL
-    , tmpPath    :: FP.FilePath
     , mvSrc      :: FP.FilePath
     , mvDest     :: FP.FilePath
     , unpackCmd  :: Maybe T.Text
@@ -117,11 +116,11 @@ filepathToText fp = case FPCOS.toText fp of
 
 -- | Retrieves a file from an Internet source, does necessary post-
 -- processing, and installs artifacts to the correct location.
-installDependency :: FP.FilePath -> DownloadJob -> Shell ()
-installDependency statPath dj = do
+installDependency :: FP.FilePath -> FP.FilePath -> DownloadJob -> Shell ()
+installDependency statPath tmpPath dj = do
   let statFilePath = statPath </> FPCOS.fromText ((jobName dj) <> "-mtime.txt")
 
-  tmpDir <- using (mktempdir (tmpPath dj) (jobName dj))
+  tmpDir <- using (mktempdir tmpPath (jobName dj))
 
   let tmpFileDest = tmpDir </> outputName dj
 
@@ -163,19 +162,18 @@ main = do
 
     let binPath      = appPath </> "bin"
         dataPath     = appPath </> "data"
-        tpath        = appPath </> "tmp"
+        tmpPath      = appPath </> "tmp"
         outputPath   = appPath </> "output"
         countryFname = country <> "-latest.osm.pbf"
 
     isDir <- testdir outputPath
     when isDir $ rmtree outputPath
 
-    mapM_ mktree [statPath, binPath, dataPath, tpath, outputPath]
+    mapM_ mktree [statPath, binPath, dataPath, tmpPath, outputPath]
 
-    mapM_ (installDependency statPath)
+    mapM_ (installDependency statPath tmpPath)
       [ DownloadJob { jobName = "mkgmap"
                     , outputName = "mkgmap.zip"
-                    , tmpPath = tpath
                     , mvSrc =
                       FPCOS.fromText $ "mkgmap-r" <> repr mkgmapRel
                     , mvDest = binPath </> "mkgmap"
@@ -185,7 +183,6 @@ main = do
 
       , DownloadJob { jobName = "splitter"
                     , outputName = "splitter.zip"
-                    , tmpPath = tpath
                     , mvSrc = FPCOS.fromText $
                               "splitter-r" <> repr splitterRel
                     , mvDest = binPath </> "splitter"
@@ -195,7 +192,6 @@ main = do
 
       , DownloadJob { jobName = region <> "-" <> country
                     , outputName = FPCOS.fromText countryFname
-                    , tmpPath = tpath
                     , mvSrc = FPCOS.fromText $ countryFname
                     , mvDest = dataPath </> (FPCOS.fromText countryFname)
                     , sourceURL = "http://download.geofabrik.de/" <>
@@ -204,7 +200,6 @@ main = do
 
       , DownloadJob { jobName = "bounds"
                     , outputName = "bounds.zip"
-                    , tmpPath = tpath
                     , mvSrc = "bounds.zip"
                     , mvDest = dataPath </> "bounds.zip"
                     , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/" <>
@@ -213,7 +208,6 @@ main = do
 
       , DownloadJob { jobName = "sea"
                     , outputName = "sea.zip"
-                    , tmpPath = tpath
                     , mvSrc = "sea.zip"
                     , mvDest = dataPath </> "sea.zip"
                     , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/sea/" <>
@@ -222,7 +216,6 @@ main = do
 
       , DownloadJob { jobName = "gmapi-builder"
                     , outputName = "gmapi-builder.tar.gz"
-                    , tmpPath = tpath
                     , mvSrc = "gmapi-builder/gmapi-builder.py"
                     , mvDest = binPath </> "gmapi-builder.py"
                     , sourceURL = "http://bitbucket.org/berteun/gmapibuilder/" <>
@@ -233,7 +226,7 @@ main = do
     echo "Starting to split..."
 
     cd binPath
-    splitOutputPath <- using (mktempdir tpath "split-output")
+    splitOutputPath <- using (mktempdir tmpPath "split-output")
 
     let splitterCmd = "java -jar splitter/splitter.jar --output-dir=" <>
                       filepathToText splitOutputPath <> " " <>
@@ -243,7 +236,7 @@ main = do
 
     shell splitterCmd empty
 
-    mkgmapOutputPath <- using (mktempdir tpath "mkgmap-output")
+    mkgmapOutputPath <- using (mktempdir tmpPath "mkgmap-output")
 
     let mapName = "OSM " <> country
 
