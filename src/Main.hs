@@ -152,151 +152,152 @@ splitterRel :: Int
 splitterRel = 427
 
 main :: IO ()
-main = sh $ do
+main = do
+  region   <- liftM T.pack $ getEnv "MAP_REGION"
+  country  <- liftM T.pack $ getEnv "MAP_COUNTRY"
 
-  region  <- liftIO $ liftM T.pack $ getEnv "MAP_REGION"
-  country <- liftIO $ liftM T.pack $ getEnv "MAP_COUNTRY"
+  appPath  <- userEzGmapDirectory
+  statPath <- statDir
 
-  appPath  <- liftIO userEzGmapDirectory
-  statPath <- liftIO statDir
+  sh $ do
 
-  let binPath    = appPath </> "bin"
-      dataPath   = appPath </> "data"
-      tpath      = appPath </> "tmp"
-      outputPath = appPath </> "output"
-      countryFname = country <> "-latest.osm.pbf"
+    let binPath      = appPath </> "bin"
+        dataPath     = appPath </> "data"
+        tpath        = appPath </> "tmp"
+        outputPath   = appPath </> "output"
+        countryFname = country <> "-latest.osm.pbf"
 
-  isDir <- testdir outputPath
-  when isDir $ rmtree outputPath
+    isDir <- testdir outputPath
+    when isDir $ rmtree outputPath
 
-  mapM_ mktree [statPath, binPath, dataPath, tpath, outputPath]
+    mapM_ mktree [statPath, binPath, dataPath, tpath, outputPath]
 
-  mapM_ (installDependency statPath)
-    [ DownloadJob { jobName = "mkgmap"
-                  , outputName = "mkgmap.zip"
-                  , tmpPath = tpath
-                  , mvSrc =
-                    FPCOS.fromText $ "mkgmap-r" <> repr mkgmapRel
-                  , mvDest = binPath </> "mkgmap"
-                  , sourceURL = "http://www.mkgmap.org.uk/download/mkgmap-r" <>
-                                repr mkgmapRel <> ".zip"
-                  , unpackCmd = Just "unzip mkgmap.zip" }
+    mapM_ (installDependency statPath)
+      [ DownloadJob { jobName = "mkgmap"
+                    , outputName = "mkgmap.zip"
+                    , tmpPath = tpath
+                    , mvSrc =
+                      FPCOS.fromText $ "mkgmap-r" <> repr mkgmapRel
+                    , mvDest = binPath </> "mkgmap"
+                    , sourceURL = "http://www.mkgmap.org.uk/download/mkgmap-r" <>
+                                  repr mkgmapRel <> ".zip"
+                    , unpackCmd = Just "unzip mkgmap.zip" }
 
-    , DownloadJob { jobName = "splitter"
-                  , outputName = "splitter.zip"
-                  , tmpPath = tpath
-                  , mvSrc = FPCOS.fromText $
-                            "splitter-r" <> repr splitterRel
-                  , mvDest = binPath </> "splitter"
-                  , sourceURL = "http://www.mkgmap.org.uk/download/splitter-r"
-                                <> repr splitterRel <> ".zip"
-                  , unpackCmd = Just "unzip splitter.zip" }
+      , DownloadJob { jobName = "splitter"
+                    , outputName = "splitter.zip"
+                    , tmpPath = tpath
+                    , mvSrc = FPCOS.fromText $
+                              "splitter-r" <> repr splitterRel
+                    , mvDest = binPath </> "splitter"
+                    , sourceURL = "http://www.mkgmap.org.uk/download/splitter-r"
+                                  <> repr splitterRel <> ".zip"
+                    , unpackCmd = Just "unzip splitter.zip" }
 
-    , DownloadJob { jobName = region <> "-" <> country
-                  , outputName = FPCOS.fromText countryFname
-                  , tmpPath = tpath
-                  , mvSrc = FPCOS.fromText $ countryFname
-                  , mvDest = dataPath </> (FPCOS.fromText countryFname)
-                  , sourceURL = "http://download.geofabrik.de/" <>
-                                region <> "/" <> countryFname
-                  , unpackCmd = Nothing }
+      , DownloadJob { jobName = region <> "-" <> country
+                    , outputName = FPCOS.fromText countryFname
+                    , tmpPath = tpath
+                    , mvSrc = FPCOS.fromText $ countryFname
+                    , mvDest = dataPath </> (FPCOS.fromText countryFname)
+                    , sourceURL = "http://download.geofabrik.de/" <>
+                                  region <> "/" <> countryFname
+                    , unpackCmd = Nothing }
 
-    , DownloadJob { jobName = "bounds"
-                  , outputName = "bounds.zip"
-                  , tmpPath = tpath
-                  , mvSrc = "bounds.zip"
-                  , mvDest = dataPath </> "bounds.zip"
-                  , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/" <>
-                                "bounds/latest/bounds.zip"
-                  , unpackCmd = Nothing }
+      , DownloadJob { jobName = "bounds"
+                    , outputName = "bounds.zip"
+                    , tmpPath = tpath
+                    , mvSrc = "bounds.zip"
+                    , mvDest = dataPath </> "bounds.zip"
+                    , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/" <>
+                                  "bounds/latest/bounds.zip"
+                    , unpackCmd = Nothing }
 
-    , DownloadJob { jobName = "sea"
-                  , outputName = "sea.zip"
-                  , tmpPath = tpath
-                  , mvSrc = "sea.zip"
-                  , mvDest = dataPath </> "sea.zip"
-                  , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/sea/" <>
-                                "latest/sea.zip"
-                  , unpackCmd = Nothing }
+      , DownloadJob { jobName = "sea"
+                    , outputName = "sea.zip"
+                    , tmpPath = tpath
+                    , mvSrc = "sea.zip"
+                    , mvDest = dataPath </> "sea.zip"
+                    , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/sea/" <>
+                                  "latest/sea.zip"
+                    , unpackCmd = Nothing }
 
-    , DownloadJob { jobName = "gmapi-builder"
-                  , outputName = "gmapi-builder.tar.gz"
-                  , tmpPath = tpath
-                  , mvSrc = "gmapi-builder/gmapi-builder.py"
-                  , mvDest = binPath </> "gmapi-builder.py"
-                  , sourceURL = "http://bitbucket.org/berteun/gmapibuilder/" <>
-                                "downloads/gmapi-builder.tar.gz"
-                  , unpackCmd = Just "tar -xvzf gmapi-builder.tar.gz" }
-    ]
+      , DownloadJob { jobName = "gmapi-builder"
+                    , outputName = "gmapi-builder.tar.gz"
+                    , tmpPath = tpath
+                    , mvSrc = "gmapi-builder/gmapi-builder.py"
+                    , mvDest = binPath </> "gmapi-builder.py"
+                    , sourceURL = "http://bitbucket.org/berteun/gmapibuilder/" <>
+                                  "downloads/gmapi-builder.tar.gz"
+                    , unpackCmd = Just "tar -xvzf gmapi-builder.tar.gz" }
+      ]
 
-  echo "Starting to split..."
+    echo "Starting to split..."
 
-  cd binPath
-  splitOutputPath <- using (mktempdir tpath "split-output")
+    cd binPath
+    splitOutputPath <- using (mktempdir tpath "split-output")
 
-  let splitterCmd = "java -jar splitter/splitter.jar --output-dir=" <>
-                    filepathToText splitOutputPath <> " " <>
-                    filepathToText dataPath <> "/ecuador-latest.osm.pbf"
+    let splitterCmd = "java -jar splitter/splitter.jar --output-dir=" <>
+                      filepathToText splitOutputPath <> " " <>
+                      filepathToText dataPath <> "/ecuador-latest.osm.pbf"
 
-  echo $ "splitter command: " <> splitterCmd
+    echo $ "splitter command: " <> splitterCmd
 
-  shell splitterCmd empty
+    shell splitterCmd empty
 
-  mkgmapOutputPath <- using (mktempdir tpath "mkgmap-output")
+    mkgmapOutputPath <- using (mktempdir tpath "mkgmap-output")
 
-  let mapName = "OSM " <> country
+    let mapName = "OSM " <> country
 
-  let mkgmapCmd =
-        "java -jar mkgmap/mkgmap.jar" <> " --route" <> " --add-pois-to-areas" <>
-        " --family-name=\"" <>  mapName <> "\"" <> " --series-name=\"" <>
-        mapName <> "\"" <> " --description=\"" <> mapName <> "\"" <>
-        " --mapname=55500001" <> " --latin1" <> " --precomp-sea=" <>
-        filepathToText dataPath <> "/sea.zip" <> " --bounds=" <>
-        filepathToText dataPath <> "/bounds.zip" <> " --index" <>
-        " --output-dir=" <> filepathToText mkgmapOutputPath <> " --gmapsupp " <>
-        filepathToText splitOutputPath <> "/*.osm.pbf"
+    let mkgmapCmd =
+          "java -jar mkgmap/mkgmap.jar" <> " --route" <> " --add-pois-to-areas" <>
+          " --family-name=\"" <>  mapName <> "\"" <> " --series-name=\"" <>
+          mapName <> "\"" <> " --description=\"" <> mapName <> "\"" <>
+          " --mapname=55500001" <> " --latin1" <> " --precomp-sea=" <>
+          filepathToText dataPath <> "/sea.zip" <> " --bounds=" <>
+          filepathToText dataPath <> "/bounds.zip" <> " --index" <>
+          " --output-dir=" <> filepathToText mkgmapOutputPath <> " --gmapsupp " <>
+          filepathToText splitOutputPath <> "/*.osm.pbf"
 
-  echo "Starting to make map..."
+    echo "Starting to make map..."
 
-  echo $ "mkgmap command: " <> mkgmapCmd
+    echo $ "mkgmap command: " <> mkgmapCmd
 
-  shell mkgmapCmd empty
+    shell mkgmapCmd empty
 
-  mv (mkgmapOutputPath </> "gmapsupp.img")
-     (outputPath </> "gmapsupp.img")
+    mv (mkgmapOutputPath </> "gmapsupp.img")
+       (outputPath </> "gmapsupp.img")
 
-  -- Now that we've removed the gmapsupp file, we can use the rest of
-  -- the images from the previous step to create a map for Garmin
-  -- basecamp.
+    -- Now that we've removed the gmapsupp file, we can use the rest of
+    -- the images from the previous step to create a map for Garmin
+    -- basecamp.
 
-  echo "Generated files from mkgmap:"
-  view (ls mkgmapOutputPath)
+    echo "Generated files from mkgmap:"
+    view (ls mkgmapOutputPath)
 
-  let gmapCmd =
-        "./gmapi-builder.py -t " <> filepathToText mkgmapOutputPath <>
-        "/osmmap.tdb" <> " -o " <> filepathToText outputPath <>
-        " -b " <> filepathToText mkgmapOutputPath <> "/osmmap.img " <>
-        filepathToText mkgmapOutputPath <> "/*.img"
+    let gmapCmd =
+          "./gmapi-builder.py -t " <> filepathToText mkgmapOutputPath <>
+          "/osmmap.tdb" <> " -o " <> filepathToText outputPath <>
+          " -b " <> filepathToText mkgmapOutputPath <> "/osmmap.img " <>
+          filepathToText mkgmapOutputPath <> "/*.img"
 
-  echo $ "gmapi-builder command: " <> gmapCmd
+    echo $ "gmapi-builder command: " <> gmapCmd
 
-  shell gmapCmd empty
+    shell gmapCmd empty
 
-  echo $ "Output files copied to " <> filepathToText outputPath
+    echo $ "Output files copied to " <> filepathToText outputPath
 
-  echo ""
-  echo "Installation instructions:"
-  echo ""
-  echo $ "Your completed maps have been placed in " <>
-    filepathToText outputPath <> ":"
+    echo ""
+    echo "Installation instructions:"
+    echo ""
+    echo $ "Your completed maps have been placed in " <>
+      filepathToText outputPath <> ":"
 
-  echo $ "Basecamp map (to copy to ~/Library/Application\\ " <>
-    "Support/Garmin/Maps/): " <> filepathToText outputPath <>
-    "/" <>  mapName <> ".gmapi/" <> mapName <> ".gmap/"
+    echo $ "Basecamp map (to copy to ~/Library/Application\\ " <>
+      "Support/Garmin/Maps/): " <> filepathToText outputPath <>
+      "/" <>  mapName <> ".gmapi/" <> mapName <> ".gmap/"
 
-  echo $ "The map for installation in your Garmin device: " <>
-    filepathToText outputPath <> "/gmapsupp.img"
+    echo $ "The map for installation in your Garmin device: " <>
+      filepathToText outputPath <> "/gmapsupp.img"
 
-  echo ""
+    echo ""
 
-  echo "All done!"
+    echo "All done!"
