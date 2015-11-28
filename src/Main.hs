@@ -210,6 +210,25 @@ downloadJobs binPath dataPath region country =
 
   where countryFname = country <> "-latest.osm.pbf"
 
+-- | Initializes application directories
+initializeDirectories ::
+  FP.FilePath -- ^ The main application directory
+  -> FP.FilePath -- ^ The directory for status files
+  -> Shell (FP.FilePath, FP.FilePath, FP.FilePath, FP.FilePath)
+  -- ^ Returned operating directory names
+initializeDirectories appPath statPath = do
+  isDir <- testdir outputPath
+  when isDir $ rmtree outputPath
+
+  mapM_ mktree [statPath, binPath, dataPath, tmpPath, outputPath]
+
+  return (binPath, dataPath, outputPath, tmpPath)
+
+  where binPath      = appPath </> "bin"
+        dataPath     = appPath </> "data"
+        tmpPath      = appPath </> "tmp"
+        outputPath   = appPath </> "output"
+
 main :: IO ()
 main = do
   region   <- liftM T.pack $ getEnv "MAP_REGION"
@@ -220,15 +239,8 @@ main = do
 
   sh $ do
 
-    let binPath      = appPath </> "bin"
-        dataPath     = appPath </> "data"
-        tmpPath      = appPath </> "tmp"
-        outputPath   = appPath </> "output"
-
-    isDir <- testdir outputPath
-    when isDir $ rmtree outputPath
-
-    mapM_ mktree [statPath, binPath, dataPath, tmpPath, outputPath]
+    (binPath, dataPath, outputPath, tmpPath) <-
+      initializeDirectories appPath statPath
 
     mapM_ (installDependency statPath tmpPath)
       (downloadJobs binPath dataPath region country)
