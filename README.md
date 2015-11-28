@@ -14,7 +14,9 @@ osm2gmap uses [splitter](http://www.mkgmap.org.uk/doc/splitter.html),
 [mkgmap](http://www.mkgmap.org.uk/doc/index.html), and
 [gmapi-builder](http://wiki.openstreetmap.org/wiki/Gmapibuilder) to
 generate maps. osm2gmap automatically downloads and installs these
-dependencies, as well as the most recent sea and bounds files.
+dependencies, as well as the most recent sea and bounds
+files. osm2gmap installs all dependencies locally, and does not
+require root privileges.
 
 ## Systems Supported
 
