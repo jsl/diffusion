@@ -2,16 +2,14 @@
 
 module Main where
 
+import Control.Monad (when, liftM)
 import Control.Monad.IO.Class       (liftIO)
 import Control.Monad.Trans.Resource (runResourceT)
-
+import Data.Monoid ((<>))
 import Data.Conduit.Binary  (sinkFile)
+import Data.Default (def)
 import Network.HTTP.Types.Status (statusCode, Status(..))
 import System.Directory (getAppUserDataDirectory)
-import Data.Default (def)
-import Control.Monad (when, liftM)
-import Data.Monoid ((<>))
-
 import Turtle.Prelude
 import Turtle.Shell (using, sh, Shell(..), view)
 import Turtle.Format (repr)
@@ -21,6 +19,7 @@ import GHC.IO.Exception (ExitCode(ExitSuccess))
 import GHC.Exception (SomeException(..))
 import Network.HTTP.Types.Header (ResponseHeaders)
 import System.Environment (getEnv)
+import Filesystem.Path ((</>))
 
 import qualified Data.Conduit as C
 import qualified Network.HTTP.Conduit as HC
@@ -109,7 +108,7 @@ userEzGmapDirectory = do
 statDir :: IO FP.FilePath
 statDir = do
   appPath <- userEzGmapDirectory
-  return $ FP.append appPath (FPCOS.fromText $ T.pack "stat")
+  return $ appPath </> "stat"
 
 filepathToText :: FP.FilePath -> T.Text
 filepathToText fp = case FPCOS.toText fp of
@@ -120,12 +119,11 @@ filepathToText fp = case FPCOS.toText fp of
 -- processing, and installs artifacts to the correct location.
 installDependency :: FP.FilePath -> DownloadJob -> Shell ()
 installDependency statPath dj = do
-  let statFilePath = FP.append statPath $ FPCOS.fromText $
-                     T.append (jobName dj) "-mtime.txt"
+  let statFilePath = statPath </> FPCOS.fromText ((jobName dj) <> "-mtime.txt")
 
   tmpDir <- using (mktempdir (tmpPath dj) (jobName dj))
 
-  let tmpFileDest = FP.append tmpDir (outputName dj)
+  let tmpFileDest = tmpDir </> outputName dj
 
   res <- getIfModifiedSince statFilePath tmpFileDest (sourceURL dj)
 
@@ -162,11 +160,11 @@ main = sh $ do
   appPath  <- liftIO userEzGmapDirectory
   statPath <- liftIO statDir
 
-  let binPath    = FP.append appPath "bin"
-      dataPath   = FP.append appPath "data"
-      tpath      = FP.append appPath "tmp"
-      outputPath = FP.append appPath "output"
-      countryFname = T.append country "-latest.osm.pbf"
+  let binPath    = appPath </> "bin"
+      dataPath   = appPath </> "data"
+      tpath      = appPath </> "tmp"
+      outputPath = appPath </> "output"
+      countryFname = country <> "-latest.osm.pbf"
 
   isDir <- testdir outputPath
   when isDir $ rmtree outputPath
@@ -179,7 +177,7 @@ main = sh $ do
                   , tmpPath = tpath
                   , mvSrc =
                     FPCOS.fromText $ "mkgmap-r" <> repr mkgmapRel
-                  , mvDest = FP.append binPath "mkgmap"
+                  , mvDest = binPath </> "mkgmap"
                   , sourceURL = "http://www.mkgmap.org.uk/download/mkgmap-r" <>
                                 repr mkgmapRel <> ".zip"
                   , unpackCmd = Just "unzip mkgmap.zip" }
@@ -189,7 +187,7 @@ main = sh $ do
                   , tmpPath = tpath
                   , mvSrc = FPCOS.fromText $
                             "splitter-r" <> repr splitterRel
-                  , mvDest = FP.append binPath "splitter"
+                  , mvDest = binPath </> "splitter"
                   , sourceURL = "http://www.mkgmap.org.uk/download/splitter-r"
                                 <> repr splitterRel <> ".zip"
                   , unpackCmd = Just "unzip splitter.zip" }
@@ -198,7 +196,7 @@ main = sh $ do
                   , outputName = FPCOS.fromText countryFname
                   , tmpPath = tpath
                   , mvSrc = FPCOS.fromText $ countryFname
-                  , mvDest = FP.append dataPath $ FPCOS.fromText $ countryFname
+                  , mvDest = dataPath </> (FPCOS.fromText countryFname)
                   , sourceURL = "http://download.geofabrik.de/" <>
                                 region <> "/" <> countryFname
                   , unpackCmd = Nothing }
@@ -207,7 +205,7 @@ main = sh $ do
                   , outputName = "bounds.zip"
                   , tmpPath = tpath
                   , mvSrc = "bounds.zip"
-                  , mvDest = FP.append dataPath "bounds.zip"
+                  , mvDest = dataPath </> "bounds.zip"
                   , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/" <>
                                 "bounds/latest/bounds.zip"
                   , unpackCmd = Nothing }
@@ -216,7 +214,7 @@ main = sh $ do
                   , outputName = "sea.zip"
                   , tmpPath = tpath
                   , mvSrc = "sea.zip"
-                  , mvDest = FP.append dataPath "sea.zip"
+                  , mvDest = dataPath </> "sea.zip"
                   , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/sea/" <>
                                 "latest/sea.zip"
                   , unpackCmd = Nothing }
@@ -225,7 +223,7 @@ main = sh $ do
                   , outputName = "gmapi-builder.tar.gz"
                   , tmpPath = tpath
                   , mvSrc = "gmapi-builder/gmapi-builder.py"
-                  , mvDest = FP.append binPath "gmapi-builder.py"
+                  , mvDest = binPath </> "gmapi-builder.py"
                   , sourceURL = "http://bitbucket.org/berteun/gmapibuilder/" <>
                                 "downloads/gmapi-builder.tar.gz"
                   , unpackCmd = Just "tar -xvzf gmapi-builder.tar.gz" }
@@ -240,7 +238,7 @@ main = sh $ do
                     filepathToText splitOutputPath <> " " <>
                     filepathToText dataPath <> "/ecuador-latest.osm.pbf"
 
-  echo $ "splitter command:" <> splitterCmd
+  echo $ "splitter command: " <> splitterCmd
 
   shell splitterCmd empty
 
@@ -264,8 +262,8 @@ main = sh $ do
 
   shell mkgmapCmd empty
 
-  mv (FP.append mkgmapOutputPath "gmapsupp.img")
-     (FP.append outputPath "gmapsupp.img")
+  mv (mkgmapOutputPath </> "gmapsupp.img")
+     (outputPath </> "gmapsupp.img")
 
   -- Now that we've removed the gmapsupp file, we can use the rest of
   -- the images from the previous step to create a map for Garmin
