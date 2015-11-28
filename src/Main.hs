@@ -174,17 +174,16 @@ main = do
     mapM_ (installDependency statPath tmpPath)
       [ DownloadJob { jobName = "mkgmap"
                     , outputName = "mkgmap.zip"
-                    , mvSrc =
-                      FPCOS.fromText $ "mkgmap-r" <> repr mkgmapRel
+                    , mvSrc = FPCOS.fromText $ "mkgmap-r" <> repr mkgmapRel
                     , mvDest = binPath </> "mkgmap"
-                    , sourceURL = "http://www.mkgmap.org.uk/download/mkgmap-r" <>
-                                  repr mkgmapRel <> ".zip"
+                    , sourceURL =
+                      "http://www.mkgmap.org.uk/download/mkgmap-r" <>
+                      repr mkgmapRel <> ".zip"
                     , unpackCmd = Just "unzip mkgmap.zip" }
 
       , DownloadJob { jobName = "splitter"
                     , outputName = "splitter.zip"
-                    , mvSrc = FPCOS.fromText $
-                              "splitter-r" <> repr splitterRel
+                    , mvSrc = FPCOS.fromText $ "splitter-r" <> repr splitterRel
                     , mvDest = binPath </> "splitter"
                     , sourceURL = "http://www.mkgmap.org.uk/download/splitter-r"
                                   <> repr splitterRel <> ".zip"
@@ -210,16 +209,17 @@ main = do
                     , outputName = "sea.zip"
                     , mvSrc = "sea.zip"
                     , mvDest = dataPath </> "sea.zip"
-                    , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/sea/" <>
-                                  "latest/sea.zip"
+                    , sourceURL =
+                      "http://osm2.pleiades.uni-wuppertal.de/sea/latest/sea.zip"
                     , unpackCmd = Nothing }
 
       , DownloadJob { jobName = "gmapi-builder"
                     , outputName = "gmapi-builder.tar.gz"
                     , mvSrc = "gmapi-builder/gmapi-builder.py"
                     , mvDest = binPath </> "gmapi-builder.py"
-                    , sourceURL = "http://bitbucket.org/berteun/gmapibuilder/" <>
-                                  "downloads/gmapi-builder.tar.gz"
+                    , sourceURL =
+                      "http://bitbucket.org/berteun/gmapibuilder/downloads/" <>
+                      "gmapi-builder.tar.gz"
                     , unpackCmd = Just "tar -xvzf gmapi-builder.tar.gz" }
       ]
 
