@@ -74,13 +74,13 @@ getIfModifiedSince path outputFile url = do
     res <- HC.http req2 manager
     if statusCode (HC.responseStatus res) == notModified then
         do
-          echo $ "File '" <> filepathToText outputFile <>
+          echo $ "File '" <> filepathToText (FP.filename outputFile) <>
                  "' already most recent version, using cached file."
 
           return False
     else
         do
-          echo $ "File '" <> filepathToText outputFile <>
+          echo $ "File '" <> filepathToText (FP.filename outputFile) <>
             "' is outdated or missing, fetching most recent version."
 
           HC.responseBody res C.$$+- sinkFile $ FPCOS.encodeString outputFile
