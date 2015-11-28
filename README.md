@@ -26,31 +26,36 @@ systems. Windows support may be added in the future.
 This project can be easily run using stack. To install Stack,
 [follow the instructions for your platform](http://docs.haskellstack.org/en/stable/README.html#how-to-install).
 
-Then, change directory to the path where you cloned the project, and
-execute the following commands:
+(Download the zip archive of this
+project)[https://github.com/jsl/osm2gmap/archive/master.zip] and
+unpack the archive. Open a terminal and change your directory to the
+directory where the project was unpacked. Then, build the project with
+`stack build`.
 
-```
-stack build
-MAP_COUNTRY=ecuador MAP_REGION=south-america stack exec osm2gmap
-```
+# Running osm2gmap
 
-This should generate maps for your Garmin device and Basecamp for
-Ecuador. It will place them in `~/.osm2gmap/output`.
-
-## Customizing osm2gmap
-
-To have osm2gmap build maps for another country, customize the
-following two environment variables, based on the file that you'd like
-to use from Geofabrik:
+Tell osm2gmap which region and country to build maps for by
+setting the following two environment variables:
 
 * `MAP_REGION`
 * `MAP_COUNTRY`
 
-For both, you should follow the hyphenated form that is in the file
-you'd download from Geofabrik. For example, if the file to download
-from Geofabrik is at the URL
+For both `MAP_REGION` and `MAP_COUNTRY`, you should follow the
+hyphenated form that is present in the URL of the file you wish to use
+from [Geofabrik](http://download.geofabrik.de/). For example, if the
+file to download from Geofabrik is at the URL
 http://download.geofabrik.de/south-america/ecuador-latest.osm.pbf, the
 region would be `south-america` and the country `ecuador`.
+
+The following command will build maps for Ecuador:
+
+```
+MAP_COUNTRY=ecuador MAP_REGION=south-america stack exec osm2gmap
+```
+
+After running this command, the resulting files will be placed in
+`~/.osm2gmap/output`.
+
 
 ## Author
 
