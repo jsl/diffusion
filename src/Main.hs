@@ -34,6 +34,7 @@ data MkOpts = MkOpts { mapRegion    :: String
                      , cachedBounds :: Bool
                      , cachedSea    :: Bool
                      , installMaps  :: Bool
+                     , skipBuild    :: Bool
                      }
 
 optsParser :: O.Parser MkOpts
@@ -59,15 +60,19 @@ optsParser = MkOpts <$> O.strOption
        (  O.long "install-maps"
        <> O.short 'i'
        <> O.help "Install maps for Basecamp and attached Garmin devices (OS X only)"
+       ) <*> O.switch
+       ( O.long "skip-build"
+       <> O.short 's'
+       <> O.help "Skip map build process (useful when you only want to install already-built artifacts)"
        )
 
 data DownloadJob = DownloadJob
-    { jobName    :: T.Text
-    , outputName :: FP.FilePath
-    , sourceURL  :: URL
-    , mvSrc      :: FP.FilePath
-    , mvDest     :: FP.FilePath
-    , unpackCmd  :: Maybe T.Text
+    { jobName        :: T.Text
+    , outputName     :: FP.FilePath
+    , sourceURL      :: URL
+    , mvSrc          :: FP.FilePath
+    , mvDest         :: FP.FilePath
+    , unpackCmd      :: Maybe T.Text
     , checkForUpdate :: Bool
     }
 
@@ -311,18 +316,8 @@ install mapName outputPath = do
 
   return ()
 
-main :: IO ()
-main = do
-  cfg <- O.execParser opts
-
-  appPath  <- userEzGmapDirectory
-  statPath <- statDir
-
-  sh $ do
-
-    (binPath, dataPath, outputPath, tmpPath) <-
-      initializeDirectories appPath statPath
-
+buildMaps :: T.Text -> FP.FilePath -> FP.FilePath -> FP.FilePath -> FP.FilePath -> FP.FilePath -> MkOpts -> Shell ()
+buildMaps mapName binPath outputPath statPath tmpPath dataPath cfg = do
     mapM_ (installDependency statPath tmpPath)
       (downloadJobs binPath dataPath (T.pack $ mapRegion cfg) (T.pack $ mapCountry cfg) cfg)
 
@@ -343,7 +338,7 @@ main = do
 
     mkgmapOutputPath <- using (mktempdir tmpPath "mkgmap-output")
 
-    let mapName = "OSM " <> T.pack (mapCountry cfg)
+
 
     let mkgmapCmd =
           "java -jar mkgmap/mkgmap.jar" <> " --route" <>
@@ -397,6 +392,23 @@ main = do
       filepathToText outputPath <> "/gmapsupp.img"
 
     echo ""
+
+
+main :: IO ()
+main = do
+  cfg <- O.execParser opts
+
+  appPath  <- userEzGmapDirectory
+  statPath <- statDir
+
+  sh $ do
+
+    let mapName = "OSM " <> T.pack (mapCountry cfg)
+
+    (binPath, dataPath, outputPath, tmpPath) <-
+      initializeDirectories appPath statPath
+
+    unless (skipBuild cfg) (buildMaps mapName binPath outputPath statPath tmpPath dataPath cfg)
 
     when (installMaps cfg) $ install mapName outputPath
 
