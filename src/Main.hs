@@ -2,7 +2,7 @@
 
 module Main where
 
-import Control.Monad (when)
+import Control.Monad (unless, when)
 import Control.Monad.IO.Class       (liftIO)
 import Control.Monad.Trans.Resource (runResourceT)
 import Data.Monoid ((<>))
@@ -37,6 +37,16 @@ data MkOpts = MkOpts { mapRegion    :: String
                      , skipBuild    :: Bool
                      }
 
+data DownloadJob = DownloadJob
+    { jobName        :: T.Text
+    , outputName     :: FP.FilePath
+    , sourceURL      :: URL
+    , mvSrc          :: FP.FilePath
+    , mvDest         :: FP.FilePath
+    , unpackCmd      :: Maybe T.Text
+    , checkForUpdate :: Bool
+    }
+
 optsParser :: O.Parser MkOpts
 optsParser = MkOpts <$> O.strOption
        (  O.long "region"
@@ -65,16 +75,6 @@ optsParser = MkOpts <$> O.strOption
        <> O.short 's'
        <> O.help "Skip map build process (useful when you only want to install already-built artifacts)"
        )
-
-data DownloadJob = DownloadJob
-    { jobName        :: T.Text
-    , outputName     :: FP.FilePath
-    , sourceURL      :: URL
-    , mvSrc          :: FP.FilePath
-    , mvDest         :: FP.FilePath
-    , unpackCmd      :: Maybe T.Text
-    , checkForUpdate :: Bool
-    }
 
 notModified :: Int
 notModified = 304
@@ -149,11 +149,6 @@ userEzGmapDirectory :: IO FP.FilePath
 userEzGmapDirectory = do
   appDir  <- getAppUserDataDirectory "osm2gmap"
   return $ FPCOS.fromText $ T.pack appDir
-
-statDir :: IO FP.FilePath
-statDir = do
-  appPath <- userEzGmapDirectory
-  return $ appPath </> "stat"
 
 filepathToText :: FP.FilePath -> T.Text
 filepathToText fp = case FPCOS.toText fp of
@@ -256,24 +251,32 @@ downloadJobs binPath dataPath region country cfg =
 
   where countryFname = country <> "-latest.osm.pbf"
 
+data AppDirectories = AppDirectories
+    { binPath    :: FP.FilePath
+    , dataPath   :: FP.FilePath
+    , statPath   :: FP.FilePath
+    , tmpPath    :: FP.FilePath
+    , outputPath :: FP.FilePath
+    }
+
 -- | Initializes application directories
-initializeDirectories ::
-  FP.FilePath -- ^ The main application directory
-  -> FP.FilePath -- ^ The directory for status files
-  -> Shell (FP.FilePath, FP.FilePath, FP.FilePath, FP.FilePath)
-  -- ^ Returned operating directory names
-initializeDirectories appPath statPath = do
-  isDir <- testdir outputPath
-  when isDir $ rmtree outputPath
+initializeDirectories :: Shell AppDirectories
+initializeDirectories  = do
+  appPath <- liftIO userEzGmapDirectory
 
-  mapM_ mktree [statPath, binPath, dataPath, tmpPath, outputPath]
+  let binPath      = appPath </> "bin"
+      dataPath     = appPath </> "data"
+      statPath     = appPath </> "stat"
+      tmpPath      = appPath </> "tmp"
+      outputPath   = appPath </> "output"
 
-  return (binPath, dataPath, outputPath, tmpPath)
+  outputDirExists <- testdir outputPath
+  when outputDirExists $ rmtree outputPath
 
-  where binPath      = appPath </> "bin"
-        dataPath     = appPath </> "data"
-        tmpPath      = appPath </> "tmp"
-        outputPath   = appPath </> "output"
+  mapM_ mktree [binPath, dataPath, statPath, tmpPath, outputPath]
+
+  return $ AppDirectories binPath dataPath statPath tmpPath outputPath
+
 
 opts :: O.ParserInfo MkOpts
 opts = O.info (O.helper <*> optsParser)
@@ -316,19 +319,19 @@ install mapName outputPath = do
 
   return ()
 
-buildMaps :: T.Text -> FP.FilePath -> FP.FilePath -> FP.FilePath -> FP.FilePath -> FP.FilePath -> MkOpts -> Shell ()
-buildMaps mapName binPath outputPath statPath tmpPath dataPath cfg = do
-    mapM_ (installDependency statPath tmpPath)
-      (downloadJobs binPath dataPath (T.pack $ mapRegion cfg) (T.pack $ mapCountry cfg) cfg)
+buildMaps :: T.Text -> AppDirectories -> MkOpts -> Shell ()
+buildMaps mapName paths cfg = do
+    mapM_ (installDependency (statPath paths) (tmpPath paths))
+      (downloadJobs (binPath paths) (dataPath paths) (T.pack $ mapRegion cfg) (T.pack $ mapCountry cfg) cfg)
 
     echo "Starting to split..."
 
-    cd binPath
-    splitOutputPath <- using (mktempdir tmpPath "split-output")
+    cd (binPath paths)
+    splitOutputPath <- using (mktempdir (tmpPath paths) "split-output")
 
     let splitterCmd = "java -jar splitter/splitter.jar --output-dir=" <>
                       filepathToText splitOutputPath <> " " <>
-                      filepathToText dataPath <> T.pack "/" <>
+                      filepathToText (dataPath paths) <> T.pack "/" <>
                       T.pack (mapCountry cfg) <>
                       T.pack "-latest.osm.pbf"
 
@@ -336,17 +339,15 @@ buildMaps mapName binPath outputPath statPath tmpPath dataPath cfg = do
 
     shell splitterCmd empty
 
-    mkgmapOutputPath <- using (mktempdir tmpPath "mkgmap-output")
-
-
+    mkgmapOutputPath <- using (mktempdir (tmpPath paths) "mkgmap-output")
 
     let mkgmapCmd =
           "java -jar mkgmap/mkgmap.jar" <> " --route" <>
           " --add-pois-to-areas" <> " --family-name=\"" <>  mapName <> "\"" <>
           " --series-name=\"" <> mapName <> "\"" <> " --description=\"" <>
           mapName <> "\"" <> " --mapname=55500001" <> " --latin1" <>
-          " --precomp-sea=" <> filepathToText dataPath <> "/sea.zip" <>
-          " --bounds=" <> filepathToText dataPath <> "/bounds.zip" <>
+          " --precomp-sea=" <> filepathToText (dataPath paths) <> "/sea.zip" <>
+          " --bounds=" <> filepathToText (dataPath paths) <> "/bounds.zip" <>
           " --index" <> " --output-dir=" <> filepathToText mkgmapOutputPath <>
           " --gmapsupp " <> filepathToText splitOutputPath <> "/*.osm.pbf"
 
@@ -357,7 +358,7 @@ buildMaps mapName binPath outputPath statPath tmpPath dataPath cfg = do
     shell mkgmapCmd empty
 
     mv (mkgmapOutputPath </> "gmapsupp.img")
-       (outputPath </> "gmapsupp.img")
+       ((outputPath paths) </> "gmapsupp.img")
 
     -- Now that we've removed the gmapsupp file, we can use the rest of
     -- the images from the previous step to create a map for Garmin
@@ -368,7 +369,7 @@ buildMaps mapName binPath outputPath statPath tmpPath dataPath cfg = do
 
     let gmapCmd =
           "./gmapi-builder.py -t " <> filepathToText mkgmapOutputPath <>
-          "/osmmap.tdb" <> " -o " <> filepathToText outputPath <>
+          "/osmmap.tdb" <> " -o " <> filepathToText (outputPath paths) <>
           " -b " <> filepathToText mkgmapOutputPath <> "/osmmap.img " <>
           filepathToText mkgmapOutputPath <> "/*.img"
 
@@ -376,40 +377,33 @@ buildMaps mapName binPath outputPath statPath tmpPath dataPath cfg = do
 
     shell gmapCmd empty
 
-    echo $ "Output files copied to " <> filepathToText outputPath
+    echo $ "Output files copied to " <> filepathToText (outputPath paths)
 
     echo ""
     echo "Installation instructions:"
     echo ""
     echo $ "Your completed maps have been placed in " <>
-      filepathToText outputPath <> ":"
+      filepathToText (outputPath paths) <> ":"
 
     echo $ "Basecamp map (to copy to ~/Library/Application\\ " <>
-      "Support/Garmin/Maps/): " <> filepathToText outputPath <>
+      "Support/Garmin/Maps/): " <> filepathToText (outputPath paths) <>
       "/" <>  mapName <> ".gmapi/" <> mapName <> ".gmap/"
 
     echo $ "The map for installation in your Garmin device: " <>
-      filepathToText outputPath <> "/gmapsupp.img"
+      filepathToText (outputPath paths) <> "/gmapsupp.img"
 
     echo ""
-
 
 main :: IO ()
 main = do
   cfg <- O.execParser opts
 
-  appPath  <- userEzGmapDirectory
-  statPath <- statDir
-
   sh $ do
-
     let mapName = "OSM " <> T.pack (mapCountry cfg)
 
-    (binPath, dataPath, outputPath, tmpPath) <-
-      initializeDirectories appPath statPath
+    paths <- initializeDirectories
 
-    unless (skipBuild cfg) (buildMaps mapName binPath outputPath statPath tmpPath dataPath cfg)
-
-    when (installMaps cfg) $ install mapName outputPath
+    unless (skipBuild cfg) (buildMaps mapName paths cfg)
+    when (installMaps cfg) $ install mapName (outputPath paths)
 
     echo "All done!"
