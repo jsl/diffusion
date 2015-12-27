@@ -2,7 +2,7 @@
 
 module Main where
 
-import Control.Monad (when, liftM)
+import Control.Monad (when)
 import Control.Monad.IO.Class       (liftIO)
 import Control.Monad.Trans.Resource (runResourceT)
 import Data.Monoid ((<>))
@@ -17,7 +17,6 @@ import Control.Applicative (empty)
 import Network.HTTP.Types.Header (hLastModified, ResponseHeaders)
 import GHC.IO.Exception (ExitCode(ExitSuccess))
 import GHC.Exception (SomeException(..))
-import System.Environment (getEnv)
 import Filesystem.Path ((</>))
 
 import qualified Data.Conduit as C
@@ -27,8 +26,36 @@ import qualified Data.Text as T
 import qualified Data.List as DL
 import qualified Filesystem.Path.CurrentOS as FPCOS
 import qualified Filesystem.Path as FP
+import qualified Options.Applicative as O
 
 type URL = T.Text
+
+data MkOpts = MkOpts { mapRegion    :: String
+                     , mapCountry   :: String
+                     , updateBounds :: Bool
+                     , updateSea    :: Bool
+                     }
+
+optsParser :: O.Parser MkOpts
+optsParser = MkOpts <$> O.strOption
+       (  O.long "region"
+       <> O.short 'r'
+       <> O.metavar "REGION"
+       <>  O.help "REGION for map"
+       ) <*> O.strOption
+       (  O.long "country"
+       <> O.short 'c'
+       <> O.metavar "REGION"
+       <> O.help "COUNTRY for map"
+       ) <*> O.switch
+       (   O.long "update-bounds"
+       <>  O.short 'b'
+       <>  O.help "Update bounds file"
+       ) <*> O.switch
+       (   O.long "update-sea"
+       <>  O.short 's'
+       <>  O.help "Update sea file"
+       )
 
 data DownloadJob = DownloadJob
     { jobName    :: T.Text
@@ -232,10 +259,16 @@ initializeDirectories appPath statPath = do
         tmpPath      = appPath </> "tmp"
         outputPath   = appPath </> "output"
 
+opts :: O.ParserInfo MkOpts
+opts = O.info (O.helper <*> optsParser)
+       ( O.fullDesc
+         <> O.progDesc "Makes an OSM map for a Garmin device"
+         <> O.header "osm2gmap - Makes an OSM map for a Garmin device"
+       )
+
 main :: IO ()
 main = do
-  region   <- liftM T.pack $ getEnv "MAP_REGION"
-  country  <- liftM T.pack $ getEnv "MAP_COUNTRY"
+  cfg <- O.execParser opts
 
   appPath  <- userEzGmapDirectory
   statPath <- statDir
@@ -246,7 +279,7 @@ main = do
       initializeDirectories appPath statPath
 
     mapM_ (installDependency statPath tmpPath)
-      (downloadJobs binPath dataPath region country)
+      (downloadJobs binPath dataPath (T.pack $ mapRegion cfg) (T.pack $ mapCountry cfg))
 
     echo "Starting to split..."
 
@@ -255,7 +288,9 @@ main = do
 
     let splitterCmd = "java -jar splitter/splitter.jar --output-dir=" <>
                       filepathToText splitOutputPath <> " " <>
-                      filepathToText dataPath <> "/ecuador-latest.osm.pbf"
+                      filepathToText dataPath <> T.pack "/" <>
+                      T.pack (mapCountry cfg) <>
+                      T.pack "-latest.osm.pbf"
 
     echo $ "splitter command: " <> splitterCmd
 
@@ -263,7 +298,7 @@ main = do
 
     mkgmapOutputPath <- using (mktempdir tmpPath "mkgmap-output")
 
-    let mapName = "OSM " <> country
+    let mapName = "OSM " <> T.pack (mapCountry cfg)
 
     let mkgmapCmd =
           "java -jar mkgmap/mkgmap.jar" <> " --route" <>

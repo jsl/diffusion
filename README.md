@@ -37,9 +37,9 @@ directory where the project was unpacked. Then, build the project with
 # Running osm2gmap
 
 Tell osm2gmap which region and country to build maps for by
-setting the environment variables `MAP_REGION` and `MAP_COUNTRY`.
+setting the command-line optiodns, `region` and `country`.
 
-For both `MAP_REGION` and `MAP_COUNTRY`, you should follow the
+For both `region` and `country`, you should follow the
 hyphenated form that is present in the URL of the file you wish to use
 from [Geofabrik](http://download.geofabrik.de/). For example, if the
 file to download from Geofabrik is at the URL
@@ -49,7 +49,7 @@ region would be `south-america` and the country `ecuador`.
 The following command will build maps for Ecuador:
 
 ```
-MAP_COUNTRY=ecuador MAP_REGION=south-america stack exec osm2gmap
+stack exec -- osm2gmap --region south-america --country ecuador
 ```
 
 After running this command, the resulting files will be placed in
