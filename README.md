@@ -34,7 +34,7 @@ unpack the archive. Open a terminal and change your directory to the
 directory where the project was unpacked. Then, build the project with
 `stack build`.
 
-# Running osm2gmap
+## Running osm2gmap
 
 Tell osm2gmap which region and country to build maps for by
 setting the command-line optiodns, `region` and `country`.
@@ -55,11 +55,21 @@ stack exec -- osm2gmap --region south-america --country ecuador
 After running this command, the resulting files will be placed in
 `~/.osm2gmap/output`.
 
-# Forcing Usage of cached Bounds and Sea Files
+## Forcing Usage of cached Bounds and Sea Files
 
 Since the "bounds" and "sea" files are large, you can skip checking
 for updates for these files by using the `--cached-bounds` and
 `--cached-sea` options, respectively.
+
+## Automatic Installation of Generated Maps (OS X Only)
+
+On OS X systems, osm2gmap can install maps to Basecamp and attached
+Garmin devices. This is done when you specify the --install-maps
+option. For Basecamp, osm2gmap will remove an existing map of the name
+that was generated and replace the map directory (NB: you may have to
+restart Basecamp before you see the new map). For Garmin devices,
+osm2gmap looks under /Volumes, and replaces files named gmapsupp.img
+with the newly-generated map.
 
 ## Author
 

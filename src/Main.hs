@@ -39,6 +39,14 @@ data MkOpts = MkOpts { mapRegion    :: String
                      , skipBuild    :: Bool
                      }
 
+data AppDirectories = AppDirectories
+    { binPath    :: FP.FilePath
+    , dataPath   :: FP.FilePath
+    , statPath   :: FP.FilePath
+    , tmpPath    :: FP.FilePath
+    , outputPath :: FP.FilePath
+    }
+
 data DownloadJob = DownloadJob
     { jobName        :: T.Text
     , outputName     :: FP.FilePath
@@ -252,14 +260,6 @@ downloadJobs binP dataP region country cfg =
   ]
 
   where countryFname = country <> "-latest.osm.pbf"
-
-data AppDirectories = AppDirectories
-    { binPath    :: FP.FilePath
-    , dataPath   :: FP.FilePath
-    , statPath   :: FP.FilePath
-    , tmpPath    :: FP.FilePath
-    , outputPath :: FP.FilePath
-    }
 
 -- | Initializes application directories
 initializeDirectories :: Shell AppDirectories
