@@ -12,7 +12,6 @@ import Network.HTTP.Types.Status (statusCode, Status(..))
 import System.Directory (getAppUserDataDirectory)
 import Turtle.Prelude
 import Turtle.Shell (using, sh, Shell(..), view)
-import Turtle.Format (repr)
 import Control.Applicative (empty)
 import Network.HTTP.Types.Header (hLastModified, ResponseHeaders)
 import GHC.IO.Exception (ExitCode(ExitSuccess))
@@ -41,20 +40,20 @@ optsParser = MkOpts <$> O.strOption
        (  O.long "region"
        <> O.short 'r'
        <> O.metavar "REGION"
-       <>  O.help "REGION for map"
+       <> O.help "REGION for map"
        ) <*> O.strOption
        (  O.long "country"
        <> O.short 'c'
        <> O.metavar "REGION"
        <> O.help "COUNTRY for map"
        ) <*> O.switch
-       (   O.long "cached-bounds"
-       <>  O.short 'b'
-       <>  O.help "Don't check for a newer bounds file if a cached version exists"
+       (  O.long "cached-bounds"
+       <> O.short 'b'
+       <> O.help "Don't check for a newer bounds file if a cached version exists"
        ) <*> O.switch
-       (   O.long "cached-sea"
-       <>  O.short 's'
-       <>  O.help "Don't check for a newer sea file if a cached version exists"
+       (  O.long "cached-sea"
+       <> O.short 's'
+       <> O.help "Don't check for a newer sea file if a cached version exists"
        )
 
 data DownloadJob = DownloadJob
@@ -98,7 +97,7 @@ getIfModifiedSince path outputFile url ckForUpdate = do
   let req2 = req { HC.requestHeaders = reqHeaders
                  , HC.checkStatus    = ckstat }
 
-  if (not statFileExists || ckForUpdate) then
+  if not statFileExists || ckForUpdate then
       liftIO $ runResourceT $ do
         res <- HC.http req2 manager
         if statusCode (HC.responseStatus res) == notModified then
@@ -178,15 +177,6 @@ installDependency statPath tmpPath dj = do
     when isDir $ rmtree (mvDest dj)
     mv (mvSrc  dj) (mvDest dj)
 
-
--- | The release number of mkgmap that will be used.
-mkgmapRel :: Int
-mkgmapRel = 3656
-
--- | The release of splitter that will be used.
-splitterRel :: Int
-splitterRel = 427
-
 -- | Describes dependencies to be installed.
 downloadJobs :: FP.FilePath -- ^ Path where binaries are installed
              -> FP.FilePath -- ^ Path where data files are installed
@@ -198,21 +188,19 @@ downloadJobs binPath dataPath region country cfg =
   [ DownloadJob
       { jobName = "mkgmap"
       , outputName = "mkgmap.zip"
-      , mvSrc = FPCOS.fromText $ "mkgmap-r" <> repr mkgmapRel
+      , mvSrc = "mkgmap"
       , mvDest = binPath </> "mkgmap"
-      , sourceURL = "http://www.mkgmap.org.uk/download/mkgmap-r" <>
-                    repr mkgmapRel <> ".zip"
-      , unpackCmd = Just "unzip mkgmap.zip"
+      , sourceURL = "http://www.mkgmap.org.uk/download/mkgmap-latest.zip"
+      , unpackCmd = Just "unzip mkgmap.zip && mv mkgmap-r* mkgmap"
       , checkForUpdate = True }
 
   , DownloadJob
       { jobName = "splitter"
       , outputName = "splitter.zip"
-      , mvSrc = FPCOS.fromText $ "splitter-r" <> repr splitterRel
+      , mvSrc = "splitter"
       , mvDest = binPath </> "splitter"
-      , sourceURL = "http://www.mkgmap.org.uk/download/splitter-r"
-                    <> repr splitterRel <> ".zip"
-      , unpackCmd = Just "unzip splitter.zip"
+      , sourceURL = "http://www.mkgmap.org.uk/download/splitter-latest.zip"
+      , unpackCmd = Just "unzip splitter.zip && mv splitter-r* splitter"
       , checkForUpdate = True }
 
   , DownloadJob
@@ -233,7 +221,7 @@ downloadJobs binPath dataPath region country cfg =
       , sourceURL =
         "http://osm2.pleiades.uni-wuppertal.de/bounds/latest/bounds.zip"
       , unpackCmd = Nothing
-      , checkForUpdate = (not $ cachedBounds cfg) }
+      , checkForUpdate = not $ cachedBounds cfg }
 
   , DownloadJob
       { jobName = "sea"
@@ -242,7 +230,7 @@ downloadJobs binPath dataPath region country cfg =
       , mvDest = dataPath </> "sea.zip"
       , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/sea/latest/sea.zip"
       , unpackCmd = Nothing
-      , checkForUpdate = (not $ cachedSea cfg) }
+      , checkForUpdate = not $ cachedSea cfg }
 
   , DownloadJob
       { jobName = "gmapi-builder"
