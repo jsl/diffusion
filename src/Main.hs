@@ -17,6 +17,7 @@ import Network.HTTP.Types.Header (hLastModified, ResponseHeaders)
 import GHC.IO.Exception (ExitCode(ExitSuccess))
 import GHC.Exception (SomeException(..))
 import Filesystem.Path ((</>))
+import System.Info (os)
 
 import qualified Data.Conduit as C
 import qualified Network.HTTP.Conduit as HC
@@ -26,6 +27,7 @@ import qualified Data.List as DL
 import qualified Filesystem.Path.CurrentOS as FPCOS
 import qualified Filesystem.Path as FP
 import qualified Options.Applicative as O
+
 
 type URL = T.Text
 
@@ -287,6 +289,8 @@ opts = O.info (O.helper <*> optsParser)
 
 install :: T.Text -> FP.FilePath -> Shell ()
 install mapName outputP = do
+  when (os /= "darwin") $ error "Sorry, is installation not supported on non-OSX systems."
+
   h <- home
 
   echo "Running map installation."
