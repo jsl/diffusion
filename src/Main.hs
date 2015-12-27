@@ -33,6 +33,7 @@ data MkOpts = MkOpts { mapRegion    :: String
                      , mapCountry   :: String
                      , cachedBounds :: Bool
                      , cachedSea    :: Bool
+                     , installMaps  :: Bool
                      }
 
 optsParser :: O.Parser MkOpts
@@ -54,6 +55,10 @@ optsParser = MkOpts <$> O.strOption
        (  O.long "cached-sea"
        <> O.short 's'
        <> O.help "Don't check for a newer sea file if a cached version exists"
+       ) <*> O.switch
+       (  O.long "install-maps"
+       <> O.short 'i'
+       <> O.help "Install maps for Basecamp and attached Garmin devices (OS X only)"
        )
 
 data DownloadJob = DownloadJob
@@ -272,6 +277,40 @@ opts = O.info (O.helper <*> optsParser)
          <> O.header "osm2gmap - Makes an OSM map for a Garmin device"
        )
 
+install :: T.Text -> FP.FilePath -> Shell ()
+install mapName outputPath = do
+  h <- home
+
+  echo "Running map installation."
+
+  let basecampMapBase = h <> FPCOS.fromText "Library/Application Support/Garmin/Maps"
+      mapPath = basecampMapBase <> FPCOS.fromText (mapName <> ".gmap")
+      genMapPath = outputPath <> FPCOS.fromText (mapName <> ".gmapi") <> FPCOS.fromText (mapName <> ".gmap")
+
+  genMapExists <- testpath genMapPath
+  basecampMapBaseExists <- testpath basecampMapBase
+
+  if genMapExists && basecampMapBaseExists then
+      do
+        mapExistsInLibrary <- testpath mapPath
+        when mapExistsInLibrary $ do
+          echo "Removing installed Basecamp map."
+          rmtree mapPath
+
+        -- TODO - replace this with a recursive directory copy?
+        mv genMapPath mapPath
+
+  else
+      echo "Basecamp map base not found, skipping Basecamp map install."
+
+  let cmd = "find /Volumes -path \"*/Garmin/gmapsupp.img\" -exec cp gmapsupp.img {} \\; -print"
+
+  echo "Replacing gmapsupp.img files on mounted Garmin volumes with new map."
+  cd outputPath
+  shell cmd empty
+
+  return ()
+
 main :: IO ()
 main = do
   cfg <- O.execParser opts
@@ -358,5 +397,7 @@ main = do
       filepathToText outputPath <> "/gmapsupp.img"
 
     echo ""
+
+    when (installMaps cfg) $ install mapName outputPath
 
     echo "All done!"
