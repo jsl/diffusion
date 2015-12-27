@@ -289,7 +289,7 @@ opts = O.info (O.helper <*> optsParser)
 
 install :: T.Text -> FP.FilePath -> Shell ()
 install mapName outputP = do
-  when (os /= "darwin") $ error "Sorry, is installation not supported on non-OSX systems."
+  when (os /= "darwin") $ error "Sorry, is installation not supported on non-n OSX systems."
 
   h <- home
 
@@ -315,7 +315,7 @@ install mapName outputP = do
   else
       echo "Basecamp map base not found, skipping Basecamp map install."
 
-  let cmd = "find /Volumes -path \"*/Garmin/gmapsupp.img\" -exec cp gmapsupp.img {} \\; -print"
+  let cmd = "find /Volumes -path \"*/Garmin/gmapsupp.img\" -exec cp gmapsupp.img {} \\;"
 
   echo "Replacing gmapsupp.img files on mounted Garmin volumes with new map."
   cd outputP
