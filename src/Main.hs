@@ -358,7 +358,7 @@ buildMaps mapName paths cfg = do
     shell mkgmapCmd empty
 
     mv (mkgmapOutputPath </> "gmapsupp.img")
-       ((outputPath paths) </> "gmapsupp.img")
+       (outputPath paths </> "gmapsupp.img")
 
     -- Now that we've removed the gmapsupp file, we can use the rest of
     -- the images from the previous step to create a map for Garmin
