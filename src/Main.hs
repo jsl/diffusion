@@ -32,8 +32,8 @@ type URL = T.Text
 
 data MkOpts = MkOpts { mapRegion    :: String
                      , mapCountry   :: String
-                     , updateBounds :: Bool
-                     , updateSea    :: Bool
+                     , cachedBounds :: Bool
+                     , cachedSea    :: Bool
                      }
 
 optsParser :: O.Parser MkOpts
@@ -48,13 +48,13 @@ optsParser = MkOpts <$> O.strOption
        <> O.metavar "REGION"
        <> O.help "COUNTRY for map"
        ) <*> O.switch
-       (   O.long "update-bounds"
+       (   O.long "cached-bounds"
        <>  O.short 'b'
-       <>  O.help "Update bounds file"
+       <>  O.help "Don't check for a newer bounds file if a cached version exists"
        ) <*> O.switch
-       (   O.long "update-sea"
+       (   O.long "cached-sea"
        <>  O.short 's'
-       <>  O.help "Update sea file"
+       <>  O.help "Don't check for a newer sea file if a cached version exists"
        )
 
 data DownloadJob = DownloadJob
@@ -64,6 +64,7 @@ data DownloadJob = DownloadJob
     , mvSrc      :: FP.FilePath
     , mvDest     :: FP.FilePath
     , unpackCmd  :: Maybe T.Text
+    , checkForUpdate :: Bool
     }
 
 notModified :: Int
@@ -80,8 +81,8 @@ ckstat st@(Status sc _) rh cj =
 
 -- | Retrieves a file only if the remote file was modified after
 -- the mtime in the file at the given path (generally under 'stat').
-getIfModifiedSince :: FP.FilePath -> FP.FilePath -> URL -> Shell Bool
-getIfModifiedSince path outputFile url = do
+getIfModifiedSince :: FP.FilePath -> FP.FilePath -> URL -> Bool -> Shell Bool
+getIfModifiedSince path outputFile url ckForUpdate = do
   manager <- liftIO $ HC.newManager HC.tlsManagerSettings
   req     <- liftIO $ HC.parseUrl $ T.unpack url
 
@@ -97,33 +98,43 @@ getIfModifiedSince path outputFile url = do
   let req2 = req { HC.requestHeaders = reqHeaders
                  , HC.checkStatus    = ckstat }
 
-  liftIO $ runResourceT $ do
-    res <- HC.http req2 manager
-    if statusCode (HC.responseStatus res) == notModified then
-        do
-          echo $ "File '" <> filepathToText (FP.filename outputFile) <>
-                 "' already most recent version, using cached file."
+  if (not statFileExists || ckForUpdate) then
+      liftIO $ runResourceT $ do
+        res <- HC.http req2 manager
+        if statusCode (HC.responseStatus res) == notModified then
+            do
+              echo $ "File '" <> filepathToText (FP.filename outputFile) <>
+                       "' already most recent version, using cached file."
 
-          return False
+              return False
+
+          else
+            do
+              echo $ "File '" <> filepathToText (FP.filename outputFile) <>
+                       "' is outdated or missing, fetching most recent version."
+
+              HC.responseBody res C.$$+- sinkFile $ FPCOS.encodeString outputFile
+
+              case DL.find (\(name, _) -> name == hLastModified) $
+                   HC.responseHeaders res of
+
+                Just (_, gmtDate) ->
+                    do
+                      when statFileExists $ rm path
+                      output path (return $ T.pack $ BS8.unpack gmtDate)
+
+                Nothing ->
+                    error "Unable to determine Last-Modified time for file, aborting."
+
+              return True
+
     else
-        do
-          echo $ "File '" <> filepathToText (FP.filename outputFile) <>
-            "' is outdated or missing, fetching most recent version."
+      do
+        echo $ "Cached file '" <> filepathToText (FP.filename outputFile) <>
+                 "' is present, skipping check for update."
 
-          HC.responseBody res C.$$+- sinkFile $ FPCOS.encodeString outputFile
+        return False
 
-          case DL.find (\(name, _) -> name == hLastModified) $
-               HC.responseHeaders res of
-
-            Just (_, gmtDate) ->
-                do
-                  when statFileExists $ rm path
-                  output path (return $ T.pack $ BS8.unpack gmtDate)
-
-            Nothing ->
-              error "Unable to determine Last-Modified time for file, aborting."
-
-          return True
 
 userEzGmapDirectory :: IO FP.FilePath
 userEzGmapDirectory = do
@@ -150,7 +161,7 @@ installDependency statPath tmpPath dj = do
 
   let tmpFileDest = tmpDir </> outputName dj
 
-  res <- getIfModifiedSince statFilePath tmpFileDest (sourceURL dj)
+  res <- getIfModifiedSince statFilePath tmpFileDest (sourceURL dj) (checkForUpdate dj)
 
   when res $ do
     cd tmpDir
@@ -181,8 +192,9 @@ downloadJobs :: FP.FilePath -- ^ Path where binaries are installed
              -> FP.FilePath -- ^ Path where data files are installed
              -> T.Text -- ^ Region being mapped
              -> T.Text -- ^ Country (in region) being mapped
+             -> MkOpts -- ^ Configuration options
              -> [DownloadJob] -- ^ Returned list of dependencies
-downloadJobs binPath dataPath region country =
+downloadJobs binPath dataPath region country cfg =
   [ DownloadJob
       { jobName = "mkgmap"
       , outputName = "mkgmap.zip"
@@ -190,7 +202,8 @@ downloadJobs binPath dataPath region country =
       , mvDest = binPath </> "mkgmap"
       , sourceURL = "http://www.mkgmap.org.uk/download/mkgmap-r" <>
                     repr mkgmapRel <> ".zip"
-      , unpackCmd = Just "unzip mkgmap.zip" }
+      , unpackCmd = Just "unzip mkgmap.zip"
+      , checkForUpdate = True }
 
   , DownloadJob
       { jobName = "splitter"
@@ -199,7 +212,8 @@ downloadJobs binPath dataPath region country =
       , mvDest = binPath </> "splitter"
       , sourceURL = "http://www.mkgmap.org.uk/download/splitter-r"
                     <> repr splitterRel <> ".zip"
-      , unpackCmd = Just "unzip splitter.zip" }
+      , unpackCmd = Just "unzip splitter.zip"
+      , checkForUpdate = True }
 
   , DownloadJob
       { jobName = region <> "-" <> country
@@ -208,7 +222,8 @@ downloadJobs binPath dataPath region country =
       , mvDest = dataPath </> FPCOS.fromText countryFname
       , sourceURL = "http://download.geofabrik.de/" <> region <> "/" <>
                     countryFname
-      , unpackCmd = Nothing }
+      , unpackCmd = Nothing
+      , checkForUpdate = True }
 
   , DownloadJob
       { jobName = "bounds"
@@ -217,7 +232,8 @@ downloadJobs binPath dataPath region country =
       , mvDest = dataPath </> "bounds.zip"
       , sourceURL =
         "http://osm2.pleiades.uni-wuppertal.de/bounds/latest/bounds.zip"
-      , unpackCmd = Nothing }
+      , unpackCmd = Nothing
+      , checkForUpdate = (not $ cachedBounds cfg) }
 
   , DownloadJob
       { jobName = "sea"
@@ -225,7 +241,8 @@ downloadJobs binPath dataPath region country =
       , mvSrc = "sea.zip"
       , mvDest = dataPath </> "sea.zip"
       , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/sea/latest/sea.zip"
-      , unpackCmd = Nothing }
+      , unpackCmd = Nothing
+      , checkForUpdate = (not $ cachedSea cfg) }
 
   , DownloadJob
       { jobName = "gmapi-builder"
@@ -235,7 +252,8 @@ downloadJobs binPath dataPath region country =
       , sourceURL =
         "http://bitbucket.org/berteun/gmapibuilder/downloads/" <>
         "gmapi-builder.tar.gz"
-      , unpackCmd = Just "tar -xvzf gmapi-builder.tar.gz" }
+      , unpackCmd = Just "tar -xvzf gmapi-builder.tar.gz"
+      , checkForUpdate = True }
   ]
 
   where countryFname = country <> "-latest.osm.pbf"
@@ -279,7 +297,7 @@ main = do
       initializeDirectories appPath statPath
 
     mapM_ (installDependency statPath tmpPath)
-      (downloadJobs binPath dataPath (T.pack $ mapRegion cfg) (T.pack $ mapCountry cfg))
+      (downloadJobs binPath dataPath (T.pack $ mapRegion cfg) (T.pack $ mapCountry cfg) cfg)
 
     echo "Starting to split..."
 

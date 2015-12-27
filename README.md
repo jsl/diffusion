@@ -55,6 +55,11 @@ stack exec -- osm2gmap --region south-america --country ecuador
 After running this command, the resulting files will be placed in
 `~/.osm2gmap/output`.
 
+# Forcing Usage of cached Bounds and Sea Files
+
+Since the "bounds" and "sea" files are large, you can skip checking
+for updates for these files by using the `--cached-bounds` and
+`--cached-sea` options, respectively.
 
 ## Author
 
