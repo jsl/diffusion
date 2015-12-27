@@ -158,10 +158,10 @@ filepathToText fp = case FPCOS.toText fp of
 -- | Retrieves a file from an Internet source, does necessary post-
 -- processing, and installs artifacts to the correct location.
 installDependency :: FP.FilePath -> FP.FilePath -> DownloadJob -> Shell ()
-installDependency statPath tmpPath dj = do
-  let statFilePath = statPath </> FPCOS.fromText (jobName dj <> "-mtime.txt")
+installDependency statP tmpP dj = do
+  let statFilePath = statP </> FPCOS.fromText (jobName dj <> "-mtime.txt")
 
-  tmpDir <- using (mktempdir tmpPath (jobName dj))
+  tmpDir <- using (mktempdir tmpP (jobName dj))
 
   let tmpFileDest = tmpDir </> outputName dj
 
@@ -189,12 +189,12 @@ downloadJobs :: FP.FilePath -- ^ Path where binaries are installed
              -> T.Text -- ^ Country (in region) being mapped
              -> MkOpts -- ^ Configuration options
              -> [DownloadJob] -- ^ Returned list of dependencies
-downloadJobs binPath dataPath region country cfg =
+downloadJobs binP dataP region country cfg =
   [ DownloadJob
       { jobName = "mkgmap"
       , outputName = "mkgmap.zip"
       , mvSrc = "mkgmap"
-      , mvDest = binPath </> "mkgmap"
+      , mvDest = binP </> "mkgmap"
       , sourceURL = "http://www.mkgmap.org.uk/download/mkgmap-latest.zip"
       , unpackCmd = Just "unzip mkgmap.zip && mv mkgmap-r* mkgmap"
       , checkForUpdate = True }
@@ -203,7 +203,7 @@ downloadJobs binPath dataPath region country cfg =
       { jobName = "splitter"
       , outputName = "splitter.zip"
       , mvSrc = "splitter"
-      , mvDest = binPath </> "splitter"
+      , mvDest = binP </> "splitter"
       , sourceURL = "http://www.mkgmap.org.uk/download/splitter-latest.zip"
       , unpackCmd = Just "unzip splitter.zip && mv splitter-r* splitter"
       , checkForUpdate = True }
@@ -212,7 +212,7 @@ downloadJobs binPath dataPath region country cfg =
       { jobName = region <> "-" <> country
       , outputName = FPCOS.fromText countryFname
       , mvSrc = FPCOS.fromText countryFname
-      , mvDest = dataPath </> FPCOS.fromText countryFname
+      , mvDest = dataP </> FPCOS.fromText countryFname
       , sourceURL = "http://download.geofabrik.de/" <> region <> "/" <>
                     countryFname
       , unpackCmd = Nothing
@@ -222,7 +222,7 @@ downloadJobs binPath dataPath region country cfg =
       { jobName = "bounds"
       , outputName = "bounds.zip"
       , mvSrc = "bounds.zip"
-      , mvDest = dataPath </> "bounds.zip"
+      , mvDest = dataP </> "bounds.zip"
       , sourceURL =
         "http://osm2.pleiades.uni-wuppertal.de/bounds/latest/bounds.zip"
       , unpackCmd = Nothing
@@ -232,7 +232,7 @@ downloadJobs binPath dataPath region country cfg =
       { jobName = "sea"
       , outputName = "sea.zip"
       , mvSrc = "sea.zip"
-      , mvDest = dataPath </> "sea.zip"
+      , mvDest = dataP </> "sea.zip"
       , sourceURL = "http://osm2.pleiades.uni-wuppertal.de/sea/latest/sea.zip"
       , unpackCmd = Nothing
       , checkForUpdate = not $ cachedSea cfg }
@@ -241,7 +241,7 @@ downloadJobs binPath dataPath region country cfg =
       { jobName = "gmapi-builder"
       , outputName = "gmapi-builder.tar.gz"
       , mvSrc = "gmapi-builder/gmapi-builder.py"
-      , mvDest = binPath </> "gmapi-builder.py"
+      , mvDest = binP </> "gmapi-builder.py"
       , sourceURL =
         "http://bitbucket.org/berteun/gmapibuilder/downloads/" <>
         "gmapi-builder.tar.gz"
@@ -264,18 +264,18 @@ initializeDirectories :: Shell AppDirectories
 initializeDirectories  = do
   appPath <- liftIO userEzGmapDirectory
 
-  let binPath      = appPath </> "bin"
-      dataPath     = appPath </> "data"
-      statPath     = appPath </> "stat"
-      tmpPath      = appPath </> "tmp"
-      outputPath   = appPath </> "output"
+  let binP      = appPath </> "bin"
+      dataP     = appPath </> "data"
+      statP     = appPath </> "stat"
+      tmpP      = appPath </> "tmp"
+      outputP   = appPath </> "output"
 
-  outputDirExists <- testdir outputPath
-  when outputDirExists $ rmtree outputPath
+  outputDirExists <- testdir outputP
+  when outputDirExists $ rmtree outputP
 
-  mapM_ mktree [binPath, dataPath, statPath, tmpPath, outputPath]
+  mapM_ mktree [binP, dataP, statP, tmpP, outputP]
 
-  return $ AppDirectories binPath dataPath statPath tmpPath outputPath
+  return $ AppDirectories binP dataP statP tmpP outputP
 
 
 opts :: O.ParserInfo MkOpts
@@ -286,14 +286,14 @@ opts = O.info (O.helper <*> optsParser)
        )
 
 install :: T.Text -> FP.FilePath -> Shell ()
-install mapName outputPath = do
+install mapName outputP = do
   h <- home
 
   echo "Running map installation."
 
   let basecampMapBase = h <> FPCOS.fromText "Library/Application Support/Garmin/Maps"
       mapPath = basecampMapBase <> FPCOS.fromText (mapName <> ".gmap")
-      genMapPath = outputPath <> FPCOS.fromText (mapName <> ".gmapi") <> FPCOS.fromText (mapName <> ".gmap")
+      genMapPath = outputP <> FPCOS.fromText (mapName <> ".gmapi") <> FPCOS.fromText (mapName <> ".gmap")
 
   genMapExists <- testpath genMapPath
   basecampMapBaseExists <- testpath basecampMapBase
@@ -314,7 +314,7 @@ install mapName outputPath = do
   let cmd = "find /Volumes -path \"*/Garmin/gmapsupp.img\" -exec cp gmapsupp.img {} \\; -print"
 
   echo "Replacing gmapsupp.img files on mounted Garmin volumes with new map."
-  cd outputPath
+  cd outputP
   shell cmd empty
 
   return ()
