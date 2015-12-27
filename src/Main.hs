@@ -181,7 +181,7 @@ installDependency statPath tmpPath dj = do
 
 -- | The release number of mkgmap that will be used.
 mkgmapRel :: Int
-mkgmapRel = 3652
+mkgmapRel = 3656
 
 -- | The release of splitter that will be used.
 splitterRel :: Int
