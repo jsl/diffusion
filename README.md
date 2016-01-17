@@ -28,8 +28,8 @@ systems. Windows support may be added in the future.
 This project can be easily run using stack. To install Stack,
 [follow the instructions for your platform](http://docs.haskellstack.org/en/stable/README.html#how-to-install).
 
-(Download the zip archive of this
-project)[https://github.com/jsl/osm2gmap/archive/master.zip] and
+[Download the zip archive of this
+project](https://github.com/jsl/osm2gmap/archive/master.zip) and
 unpack the archive. Open a terminal and change your directory to the
 directory where the project was unpacked. Then, build the project with
 `stack build`.
