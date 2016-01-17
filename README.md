@@ -73,6 +73,14 @@ restart Basecamp before you see the new map). For Garmin devices,
 osm2gmap looks under /Volumes, and replaces files named gmapsupp.img
 with the newly-generated map.
 
+## Installing with Nix
+
+You can build this project with Nix and Stack:
+
+```
+stack --nix build
+```
+
 ## Author
 
 Justin Leitgeb, <justin@stackbuilders.com>.
