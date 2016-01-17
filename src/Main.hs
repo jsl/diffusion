@@ -289,7 +289,7 @@ opts = O.info (O.helper <*> optsParser)
 
 install :: T.Text -> FP.FilePath -> Shell ()
 install mapName outputP = do
-  when (os /= "darwin") $ error "Sorry, is installation not supported on non-n OSX systems."
+  when (os /= "darwin") $ error "Sorry, installation is not supported on non-OS X systems."
 
   h <- home
 
