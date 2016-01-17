@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jsl/osm2gmap.svg?branch=master)](https://travis-ci.org/jsl/osm2gmap)
+
 # osm2gmap
 
 osm2gmap generates maps for Garmin devices and Basecamp with a single
