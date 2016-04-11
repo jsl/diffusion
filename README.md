@@ -92,6 +92,6 @@ stack --nix exec -- osm2gmap --region south-america --country ecuador
 
 Justin Leitgeb, <justin@stackbuilders.com>.
 
-## Licence
+## License
 
 MIT, see the [LICENSE](LICENSE) file.
