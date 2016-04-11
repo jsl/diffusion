@@ -365,9 +365,6 @@ buildMaps mapName paths cfg = do
     echo $ "The map for installation in your Garmin device: " <>
       filepathToText (outputPath paths) <> "/gmapsupp.img"
 
-
-    echo "Or use the --install-maps option next time."
-
     echo ""
 
 main :: IO ()
