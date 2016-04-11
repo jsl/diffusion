@@ -81,6 +81,13 @@ You can build this project with Nix and Stack:
 stack --nix build
 ```
 
+Likewise, for running this package using Nix, add the `--nix` 
+flag to the above `stack exec` command to use Nix dependencies:
+
+```
+stack --nix exec -- osm2gmap --region south-america --country ecuador
+```
+
 ## Author
 
 Justin Leitgeb, <justin@stackbuilders.com>.

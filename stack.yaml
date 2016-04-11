@@ -17,4 +17,4 @@ nix:
   # Don't depend on end-users to have Nix for the moment. If you want to run using Nix,
   # add `--nix` to the command line, e.g., `stack --nix build`.
   enable: false
-  packages: [glpk, pcre, zlib]
+  packages: [jre, glpk, pcre, zlib]
