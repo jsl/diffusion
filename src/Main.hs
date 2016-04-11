@@ -359,6 +359,8 @@ buildMaps mapName paths cfg = do
 
     echo $ "mkgmap command: " <> mkgmapCmd
 
+    cp 
+
     shell mkgmapCmd empty
 
     mv (mkgmapOutputPath </> "gmapsupp.img")
