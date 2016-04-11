@@ -30,11 +30,13 @@ import qualified Options.Applicative as O
 
 type URL = T.Text
 
-data MkOpts = MkOpts { mapRegion    :: String
-                     , mapCountry   :: String
-                     , cachedBounds :: Bool
-                     , cachedSea    :: Bool
-                     , skipBuild    :: Bool
+data MkOpts = MkOpts { mapRegion      :: String
+                     , mapCountry     :: String
+                     , cachedBounds   :: Bool
+                     , cachedSea      :: Bool
+                     , skipBuild      :: Bool
+                     , latestMkgmap   :: Bool
+                     , latestSplitter :: Bool
                      }
 
 data AppDirectories = AppDirectories
@@ -55,6 +57,25 @@ data DownloadJob = DownloadJob
     , checkForUpdate :: Bool
     }
 
+data BuilderVersions = BuilderVersions
+  { verMkgmap   :: BuilderVersion
+  , verSplitter :: BuilderVersion
+  }
+
+data BuilderVersion = Latest | Version Integer
+
+testedVersions :: BuilderVersions
+testedVersions = BuilderVersions { verMkgmap   = Version 3675
+                                 , verSplitter = Version 437  } 
+
+versionText :: BuilderVersion -> T.Text
+versionText Latest = T.pack "latest"
+versionText (Version int) = "r" <> (T.pack $ show int)
+
+versionFor :: BuilderVersions -> Bool -> (BuilderVersions -> BuilderVersion) -> T.Text
+versionFor _ True _ = T.pack "latest"
+versionFor bvs False verFn = versionText $ verFn bvs
+
 optsParser :: O.Parser MkOpts
 optsParser = MkOpts <$> O.strOption
        (  O.long "region"
@@ -72,13 +93,17 @@ optsParser = MkOpts <$> O.strOption
        <> O.help "Don't check for a newer bounds file if a cached version exists"
        ) <*> O.switch
        (  O.long "cached-sea"
-       <> O.short 's'
        <> O.help "Don't check for a newer sea file if a cached version exists"
        ) <*> O.switch
        ( O.long "skip-build"
-       <> O.short 's'
        <> O.help "Skip map build process (useful when you only want to install already-built artifacts)"
-       )
+       ) <*> O.switch
+       ( O.long "latest-mkgmap"
+       <> O.help "Use latest (untested) version of mkgmap"
+       ) <*> O.switch
+       ( O.long "latest-splitter"
+       <> O.help "Use latest (untested) version of splitter"
+       ) 
 
 notModified :: Int
 notModified = 304
@@ -168,6 +193,8 @@ installDependency statP tmpP dj = do
 
   let tmpFileDest = tmpDir </> outputName dj
 
+  echo $ "Retrieving: " <> (sourceURL dj)
+  
   res <- getIfModifiedSince statFilePath tmpFileDest (sourceURL dj) (checkForUpdate dj)
 
   when res $ do
@@ -175,7 +202,7 @@ installDependency statP tmpP dj = do
 
     case unpackCmd dj of
       Just cmd -> shell cmd empty
-      Nothing -> return ExitSuccess
+      Nothing  -> return ExitSuccess
 
     echo $ "Moving " <> filepathToText (mvSrc dj) <> " to " <>
            filepathToText (mvDest dj)
@@ -198,7 +225,8 @@ downloadJobs binP dataP region country cfg =
       , outputName = "mkgmap.zip"
       , mvSrc = "mkgmap"
       , mvDest = binP </> "mkgmap"
-      , sourceURL = "http://www.mkgmap.org.uk/download/mkgmap-latest.zip"
+      , sourceURL = "http://www.mkgmap.org.uk/download/mkgmap-" <>
+        versionFor testedVersions (latestMkgmap cfg) verMkgmap <> ".zip"
       , unpackCmd = Just "unzip mkgmap.zip && mv mkgmap-r* mkgmap"
       , checkForUpdate = True }
 
@@ -207,7 +235,8 @@ downloadJobs binP dataP region country cfg =
       , outputName = "splitter.zip"
       , mvSrc = "splitter"
       , mvDest = binP </> "splitter"
-      , sourceURL = "http://www.mkgmap.org.uk/download/splitter-latest.zip"
+      , sourceURL = "http://www.mkgmap.org.uk/download/splitter-" <>
+        versionFor testedVersions (latestSplitter cfg) verSplitter <> ".zip"
       , unpackCmd = Just "unzip splitter.zip && mv splitter-r* splitter"
       , checkForUpdate = True }
 
