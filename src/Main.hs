@@ -154,7 +154,6 @@ getIfModifiedSince path outputFile url ckForUpdate = do
 
         return False
 
-
 userEzGmapDirectory :: IO FP.FilePath
 userEzGmapDirectory = do
   appDir  <- getAppUserDataDirectory "osm2gmap"
@@ -257,6 +256,17 @@ downloadJobs binP dataP region country cfg =
         "gmapi-builder.tar.gz"
       , unpackCmd = Just "tar -xvzf gmapi-builder.tar.gz"
       , checkForUpdate = True }
+
+  , DownloadJob
+    { jobName = "style"
+    , outputName = "default.zip"
+    , mvSrc = "default.zip"
+    , mvDest = dataP <> "default.zip"
+    , sourceURL =
+      "http://osm2gmap-styles.s3-website-us-east-1.amazonaws.com/default.zip"
+    , unpackCmd = Nothing
+    , checkForUpdate = True
+    }
   ]
 
   where countryFname = country <> "-latest.osm.pbf"
@@ -353,13 +363,12 @@ buildMaps mapName paths cfg = do
           " --precomp-sea=" <> filepathToText (dataPath paths) <> "/sea.zip" <>
           " --bounds=" <> filepathToText (dataPath paths) <> "/bounds.zip" <>
           " --index" <> " --output-dir=" <> filepathToText mkgmapOutputPath <>
+          " --style-file=" <> filepathToText (dataPath paths) <> "/default.zip" <>
           " --gmapsupp " <> filepathToText splitOutputPath <> "/*.osm.pbf"
 
     echo "Starting to make map..."
 
     echo $ "mkgmap command: " <> mkgmapCmd
-
-    cp 
 
     shell mkgmapCmd empty
 

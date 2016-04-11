@@ -10,33 +10,33 @@
 
 addr:housenumber=* {set mkgmap:execute_finalize_rules=true}
 barrier=* & bicycle=*    { set mkgmap:bicycle='${bicycle|subst:private=>no}' }
-barrier=* & foot=*       { set mkgmap:foot='${foot|subst:private=>no}' }
-barrier=* & hgv=*        { set mkgmap:truck='${hgv|subst:private=>no}' }
+barrier=* & foot=*       { set mkgmap:foot='${foot|subst:private=>no}' }                  
+barrier=* & hgv=*        { set mkgmap:truck='${hgv|subst:private=>no}' }                  
 barrier=* & motorcar=*   { set mkgmap:car='${motorcar|subst:private=>no}' }
-barrier=* & psv=*        { set mkgmap:bus='${psv|subst:private=>no}' }
-barrier=* & taxi=*       { set mkgmap:taxi='${taxi|subst:private=>no}' }
-barrier=* & emergency=*  { set mkgmap:emergency='${emergency|subst:private=>no}' }
-barrier=* & delivery=*   { set mkgmap:delivery='${delivery|subst:private=>no}' }
+barrier=* & psv=*        { set mkgmap:bus='${psv|subst:private=>no}' }                  
+barrier=* & taxi=*       { set mkgmap:taxi='${taxi|subst:private=>no}' }                  
+barrier=* & emergency=*  { set mkgmap:emergency='${emergency|subst:private=>no}' }                  
+barrier=* & delivery=*   { set mkgmap:delivery='${delivery|subst:private=>no}' }                  
 barrier=* & access=*     { addaccess '${access|subst:private=>no}' }
 
-barrier=bollard | barrier=cycle_barrier
-    { add mkgmap:bicycle=yes;
-      add mkgmap:foot=yes;
+barrier=bollard | barrier=cycle_barrier 
+    { add mkgmap:bicycle=yes; 
+      add mkgmap:foot=yes; 
       addaccess no;
       set mkgmap:road-speed=1; }
-barrier=bus_trap
-    { add mkgmap:bus=yes;
-      add mkgmap:foot=yes;
-      add mkgmap:bicycle=yes;
+barrier=bus_trap  
+    { add mkgmap:bus=yes; 
+      add mkgmap:foot=yes; 
+      add mkgmap:bicycle=yes; 
       addaccess no;
       set mkgmap:road-speed=1; }
 barrier=gate
-    { add mkgmap:bicycle=yes;
-      add mkgmap:foot=yes;
+    { add mkgmap:bicycle=yes; 
+      add mkgmap:foot=yes; 
       addaccess no;
       set mkgmap:road-speed=0; }
 barrier=kissing_gate | barrier=stile | barrier=block
-    { add mkgmap:foot=yes;
+    { add mkgmap:foot=yes; 
       addaccess no;
       set mkgmap:road-speed=0; }
 
@@ -260,6 +260,14 @@ shop=tires [0x2f07 resolution 24]
 shop=tyres [0x2f07 resolution 24]
 shop=* [0x2e0c resolution 24]
 
+### START section added for osm2gmap.
+
+# Buildings tagged without anything but names - from OpenFietsmap,
+building=* & name=* [0x6405 resolution 24]
+office=* & name=* {name '${name} (${office})'} [0x2900 resolution 24]
+
+### END section added for osm2gmap.
+
 sport=9pin [0x2d07 resolution 24]
 sport=10pin | leisure=bowling_alley [0x2d07 resolution 24]
 sport=airport [0x2d0b resolution 24]
@@ -289,10 +297,6 @@ tourism=theme_park [0x2c01 resolution 24]
 tourism=viewpoint {name '${name} - ${description}' | '${name}'} [0x2c04 resolution 24]
 tourism=wine_cellar [0x2c0a resolution 24]
 tourism=zoo [0x2c07 resolution 24]
-
-# Buildings tagged without anything but names - from OpenFietsmap
-building=* & name=* [0x6405 resolution 24]
-office=* & name=* {name '${name} (${office})'} [0x2900 resolution 24]
 
 barrier=bollard | barrier=bus_trap | barrier=gate [0x660f resolution 24]
 barrier=block | barrier=cycle_barrier | barrier=stile | barrier=kissing_gate [0x660f resolution 24]
