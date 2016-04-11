@@ -17,7 +17,6 @@ import Network.HTTP.Types.Header (hLastModified, ResponseHeaders)
 import GHC.IO.Exception (ExitCode(ExitSuccess))
 import GHC.Exception (SomeException(..))
 import Filesystem.Path ((</>))
-import System.Info (os)
 
 import qualified Data.Conduit as C
 import qualified Network.HTTP.Conduit as HC
@@ -35,7 +34,6 @@ data MkOpts = MkOpts { mapRegion    :: String
                      , mapCountry   :: String
                      , cachedBounds :: Bool
                      , cachedSea    :: Bool
-                     , installMaps  :: Bool
                      , skipBuild    :: Bool
                      }
 
@@ -76,10 +74,6 @@ optsParser = MkOpts <$> O.strOption
        (  O.long "cached-sea"
        <> O.short 's'
        <> O.help "Don't check for a newer sea file if a cached version exists"
-       ) <*> O.switch
-       (  O.long "install-maps"
-       <> O.short 'i'
-       <> O.help "Install maps for Basecamp and attached Garmin devices (OS X only)"
        ) <*> O.switch
        ( O.long "skip-build"
        <> O.short 's'
@@ -297,42 +291,6 @@ opts = O.info (O.helper <*> optsParser)
          <> O.header "osm2gmap - Makes an OSM map for a Garmin device"
        )
 
-install :: T.Text -> FP.FilePath -> Shell ()
-install mapName outputP = do
-  when (os /= "darwin") $ error "Sorry, installation is not supported on non-OS X systems."
-
-  h <- home
-
-  echo "Running map installation."
-
-  let basecampMapBase = h <> FPCOS.fromText "Library/Application Support/Garmin/Maps"
-      mapPath = basecampMapBase <> FPCOS.fromText (mapName <> ".gmap")
-      genMapPath = outputP <> FPCOS.fromText (mapName <> ".gmapi") <> FPCOS.fromText (mapName <> ".gmap")
-
-  genMapExists <- testpath genMapPath
-  basecampMapBaseExists <- testpath basecampMapBase
-
-  if genMapExists && basecampMapBaseExists then
-      do
-        mapExistsInLibrary <- testpath mapPath
-        when mapExistsInLibrary $ do
-          echo "Removing installed Basecamp map."
-          rmtree mapPath
-
-        -- TODO - replace this with a recursive directory copy?
-        mv genMapPath mapPath
-
-  else
-      echo "Basecamp map base not found, skipping Basecamp map install."
-
-  let cmd = "find /Volumes -path \"*/Garmin/gmapsupp.img\" -exec cp gmapsupp.img {} \\;"
-
-  echo "Replacing gmapsupp.img files on mounted Garmin volumes with new map."
-  cd outputP
-  shell cmd empty
-
-  return ()
-
 buildMaps :: T.Text -> AppDirectories -> MkOpts -> Shell ()
 buildMaps mapName paths cfg = do
     mapM_ (installDependency (statPath paths) (tmpPath paths))
@@ -422,6 +380,5 @@ main = do
     paths <- initializeDirectories
 
     unless (skipBuild cfg) (buildMaps mapName paths cfg)
-    when (installMaps cfg) $ install mapName (outputPath paths)
 
     echo "All done!"

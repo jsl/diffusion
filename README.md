@@ -63,16 +63,6 @@ Since the "bounds" and "sea" files are large, you can skip checking
 for updates for these files by using the `--cached-bounds` and
 `--cached-sea` options, respectively.
 
-## Automatic Installation of Generated Maps (OS X Only)
-
-On OS X systems, osm2gmap can install maps to Basecamp and attached
-Garmin devices. This is done when you specify the --install-maps
-option. For Basecamp, osm2gmap will remove an existing map of the name
-that was generated and replace the map directory (NB: you may have to
-restart Basecamp before you see the new map). For Garmin devices,
-osm2gmap looks under /Volumes, and replaces files named gmapsupp.img
-with the newly-generated map.
-
 ## Installing with Nix
 
 You can build this project with Nix and Stack:
