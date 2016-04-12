@@ -65,7 +65,7 @@ data BuilderVersions = BuilderVersions
 data BuilderVersion = Latest | Version Integer
 
 testedVersions :: BuilderVersions
-testedVersions = BuilderVersions { verMkgmap   = Version 3675
+testedVersions = BuilderVersions { verMkgmap   = Version 3676
                                  , verSplitter = Version 437  } 
 
 versionText :: BuilderVersion -> T.Text
@@ -73,7 +73,7 @@ versionText Latest = T.pack "latest"
 versionText (Version int) = "r" <> (T.pack $ show int)
 
 versionFor :: BuilderVersions -> Bool -> (BuilderVersions -> BuilderVersion) -> T.Text
-versionFor _ True _ = T.pack "latest"
+versionFor _ True _ = versionText Latest
 versionFor bvs False verFn = versionText $ verFn bvs
 
 optsParser :: O.Parser MkOpts
@@ -193,8 +193,6 @@ installDependency statP tmpP dj = do
 
   let tmpFileDest = tmpDir </> outputName dj
 
-  echo $ "Retrieving: " <> (sourceURL dj)
-  
   res <- getIfModifiedSince statFilePath tmpFileDest (sourceURL dj) (checkForUpdate dj)
 
   when res $ do

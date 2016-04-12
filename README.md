@@ -78,6 +78,15 @@ flag to the above `stack exec` command to use Nix dependencies:
 stack --nix exec -- osm2gmap --region south-america --country ecuador
 ```
 
+## Upgrading Dependencies
+
+This program relies on some fast-moving dependencies: specifically, mkgmap and
+splitter. We hard-code to specific versions of these programs to make sure that
+our styles and options are compatible. However, you can choose to use the latest
+mkgmap and splitter with the options `--latest-mkgmap` and `--latest-splitter`.
+If you find that the newest libraries work, feel free to update the
+`testedversions` in the source code, and open a pull request.
+
 ## Author
 
 Justin Leitgeb, <justin@stackbuilders.com>.
