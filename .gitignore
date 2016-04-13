@@ -2,3 +2,4 @@ data/*
 .stack-work/*
 .DS_Store
 *.zip
+.shake/*
