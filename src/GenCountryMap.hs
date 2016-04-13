@@ -7,8 +7,12 @@ import Development.Shake
 opts :: ShakeOptions
 opts = shakeOptions { shakeFiles  = ".shake/" }
 
-main :: IO ()
-main = shakeArgs opts $ do
+curlCmd :: String -> String -> Action ()
+curlCmd url destfile = do
+  cmd "curl" [url, "-s", "-o", destfile]
+
+buildMap :: String -> String -> String -> IO ()
+buildMap planetURL regionPolyURL osmosisURL = shakeArgs opts $ do
   want [".shake/ecuador.osm.pbf"]
 
   ".shake/ecuador.osm.pbf" *> \_ -> do
@@ -30,11 +34,11 @@ main = shakeArgs opts $ do
 
   ".shake/south-america-latest.osm.pbf" *> \f -> do
     --- cmd "curl" ["http://download.geofabrik.de/south-america-latest.osm.pbf", "-s", "-o", f]
-    cmd "curl" ["http://localhost:8000/south-america-latest.osm.pbf", "-s", "-o", f]
+    curlCmd planetURL f
 
   ".shake/south-america/ecuador.poly" *> \f -> do
     -- cmd "curl" ["http://download.geofabrik.de/south-america/ecuador.poly", "-s", "-o", f ]
-    cmd "curl" ["http://localhost:8000/ecuador.poly", "-s", "-o", f ]
+    curlCmd regionPolyURL f
 
   ".shake/osmosis/bin/osmosis" *> \_ -> do
     need [".shake/osmosis-latest.tgz"]
@@ -42,4 +46,10 @@ main = shakeArgs opts $ do
   
   ".shake/osmosis-latest.tgz" *> \f -> do
     -- cmd "curl" ["http://bretth.dev.openstreetmap.org/osmosis-build/osmosis-latest.tgz", "-s", "-o", f]
-    cmd "curl" ["http://localhost:8000/osmosis-latest.tgz", "-s", "-o", f]
+    curlCmd osmosisURL f
+
+main :: IO ()
+main = buildMap
+  "http://localhost:8000/south-america-latest.osm.pbf"
+  "http://localhost:8000/ecuador.poly"
+  "http://localhost:8000/osmosis-latest.tgz"
