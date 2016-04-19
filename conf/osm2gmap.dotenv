@@ -1,0 +1,5 @@
+MAP_URL="http://localhost:8000/ecuador.osm.pbf"
+BOUNDS_URL="http://localhost:8000/bounds.zip"
+SEA_URL="http://localhost:8000/sea.zip"
+GMAPI_BUILDER_URL="http://localhost:8000/gmapi-builder.tar.gz"
+STYLE_URL="http://localhost:8000/default.zip"

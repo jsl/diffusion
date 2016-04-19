@@ -1,18 +1,53 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Main where
 
 import Prelude hiding ((*>))
 
 import Development.Shake
+import Data.Hashable
+import Data.Typeable
+import Data.Binary
+import Control.Monad (liftM)
+import Control.DeepSeq
 
 opts :: ShakeOptions
-opts = shakeOptions { shakeFiles  = ".shake/" }
+opts = shakeOptions { shakeFiles  = ".shake/"
+                    , shakeVerbosity = Diagnostic }
 
 curlCmd :: String -> String -> Action ()
 curlCmd url destfile = do
   cmd "curl" [url, "-s", "-o", destfile]
 
-buildMap :: String -> String -> String -> IO ()
-buildMap planetURL regionPolyURL osmosisURL = shakeArgs opts $ do
+data Options = Options
+  { planetURL         :: String
+  , countryPolygonURL :: String
+  , osmosisURL        :: String
+  }
+
+newtype URL = URL String deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
+
+getOptions :: Action Options
+getOptions = do
+  let opts  = mapM getEnv ["PLANET_URL", "COUNTRY_POLYGON_URL", "OSMOSIS_URL"]
+      opts' = liftM sequence opts
+
+  opts'' <- opts'
+  
+  case opts'' of
+    Just xs -> return $ toOpts xs
+    Nothing -> fail "Failed to set a required parameter for build!"
+    
+  where toOpts [purl, curl, ourl] = Options purl curl ourl
+
+buildMap :: IO ()
+buildMap = shakeArgs opts $ do
+  let opts = getOptions
+
+  getEtag <- addOracle $ \(URL url) -> do
+    Stdout out <- cmd $ "curl -I -L -s " ++ url ++ " | grep ETag | tail -n 1"
+    return (out :: String)
+  
   want [".shake/ecuador.osm.pbf"]
 
   ".shake/ecuador.osm.pbf" *> \_ -> do
@@ -33,23 +68,21 @@ buildMap planetURL regionPolyURL osmosisURL = shakeArgs opts $ do
   "clean" ~> removeFilesAfter ".shake" ["//*"]
 
   ".shake/south-america-latest.osm.pbf" *> \f -> do
-    --- cmd "curl" ["http://download.geofabrik.de/south-america-latest.osm.pbf", "-s", "-o", f]
-    curlCmd planetURL f
+    purl <- liftM planetURL opts
+    getEtag $ URL purl
+    curlCmd purl f
 
   ".shake/south-america/ecuador.poly" *> \f -> do
-    -- cmd "curl" ["http://download.geofabrik.de/south-america/ecuador.poly", "-s", "-o", f ]
-    curlCmd regionPolyURL f
+    curl <- liftM countryPolygonURL opts
+    curlCmd curl f
 
   ".shake/osmosis/bin/osmosis" *> \_ -> do
     need [".shake/osmosis-latest.tgz"]
     cmd "tar" ["xvzf", ".shake/osmosis-latest.tgz", "-C", ".shake/osmosis"]
   
   ".shake/osmosis-latest.tgz" *> \f -> do
-    -- cmd "curl" ["http://bretth.dev.openstreetmap.org/osmosis-build/osmosis-latest.tgz", "-s", "-o", f]
-    curlCmd osmosisURL f
+    ourl <- liftM osmosisURL opts
+    curlCmd ourl f
 
 main :: IO ()
 main = buildMap
-  "http://localhost:8000/south-america-latest.osm.pbf"
-  "http://localhost:8000/ecuador.poly"
-  "http://localhost:8000/osmosis-latest.tgz"
