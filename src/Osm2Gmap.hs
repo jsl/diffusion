@@ -55,7 +55,6 @@ getOptions = do
                , styleUrl
                ] = Options mapUrl boundsUrl seaUrl styleUrl
 
-
 buildMap :: IO ()
 buildMap = shakeArgs opts $ do
   let opts = getOptions
@@ -66,8 +65,8 @@ buildMap = shakeArgs opts $ do
         return (out :: String)
       else
         do
-          c <- liftIO getCurrentTime
-          return $ show c
+          c' <- liftIO getCurrentTime
+          return $ show c'
       
   want [".osm2gmap/gmapsupp.img"]
 
@@ -126,17 +125,17 @@ buildMap = shakeArgs opts $ do
     -- getEtag $ URL url
     curlCmd url f
 
-  ".osm2gmap/mkgmap/dist/mkgmap.jar" *> \f -> do
+  ".osm2gmap/mkgmap/dist/mkgmap.jar" *> \_ -> do
     need [ ".osm2gmap/mkgmap/build.xml" ]
     cmd (Cwd ".osm2gmap/mkgmap") "ant"
 
-  ".osm2gmap/mkgmap/build.xml" *> \f -> do
+  ".osm2gmap/mkgmap/build.xml" *> \_ -> do
     cmd "svn" ["co", "http://svn.mkgmap.org.uk/mkgmap/trunk",  ".osm2gmap/mkgmap"]
 
-  ".osm2gmap/splitter/build.xml" *> \f -> do
+  ".osm2gmap/splitter/build.xml" *> \_ -> do
     cmd "svn" ["co", "http://svn.mkgmap.org.uk/splitter/trunk",  ".osm2gmap/splitter"]
 
-  ".osm2gmap/splitter/dist/splitter.jar" *> \f -> do
+  ".osm2gmap/splitter/dist/splitter.jar" *> \_ -> do
     need [".osm2gmap/splitter/build.xml"]
     cmd (Cwd ".osm2gmap/splitter") "ant"
 
