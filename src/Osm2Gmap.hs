@@ -112,27 +112,27 @@ buildMap = shakeArgs opts $ do
 
   ".osm2gmap/style.zip" *> \f -> do
     url <- liftM styleURL opts
-    -- getEtag $ URL url
+    getEtag $ URL url
     curlCmd url f
 
   ".osm2gmap/map.osm.pbf" *> \f -> do
     url <- liftM mapURL opts
-    -- getEtag $ URL url
+    getEtag $ URL url
     curlCmd url f
 
   ".osm2gmap/sea.zip" *> \f -> do
     url <- liftM seaURL opts
-    -- getEtag $ URL url
+    getEtag $ URL url
     curlCmd url f
 
   ".osm2gmap/mkgmap/dist/mkgmap.jar" *> \_ -> do
     need [ ".osm2gmap/mkgmap/build.xml" ]
     cmd (Cwd ".osm2gmap/mkgmap") "ant"
 
-  ".osm2gmap/mkgmap/build.xml" *> \_ -> do
+  ".osm2gmap/mkgmap/build.xml" *> \_ ->
     cmd "svn" ["co", "http://svn.mkgmap.org.uk/mkgmap/trunk",  ".osm2gmap/mkgmap"]
 
-  ".osm2gmap/splitter/build.xml" *> \_ -> do
+  ".osm2gmap/splitter/build.xml" *> \_ ->
     cmd "svn" ["co", "http://svn.mkgmap.org.uk/splitter/trunk",  ".osm2gmap/splitter"]
 
   ".osm2gmap/splitter/dist/splitter.jar" *> \_ -> do
