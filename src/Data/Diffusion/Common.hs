@@ -6,7 +6,7 @@ Description: Common functions for the Diffusion program.
 -}
 module Data.Diffusion.Common where
 
-import Development.Shake (Action(), getEnv, cmd, Exit(..), Stdout(..))
+import Development.Shake (Action(), getEnv, cmd, Exit(..), Stdout(..), liftIO)
 
 import Data.Hashable (Hashable())
 import Data.Typeable (Typeable())
@@ -39,12 +39,12 @@ curlCmd url destfile = cmd "curl" [url, "-s", "-o", destfile]
 --  we use the UTC Time that the file was retrieved, so the file will be pretty
 -- much downloaded every time.
 getEtag :: String -- ^ The URL of the file
-        -> IO String -- ^ The Etag or UTC Time that this function was called
+        -> Action String -- ^ The Etag or UTC Time that this function was called
 getEtag url = do
   (Exit c, Stdout out) <- cmd $ "curl -I -L -s " ++ url ++ " | grep ETag"
   if c == ExitSuccess then
     return (out :: String)
    else
     do
-      c' <- getCurrentTime
+      c' <- liftIO getCurrentTime
       return $ show c'

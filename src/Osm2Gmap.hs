@@ -4,50 +4,15 @@ import Prelude hiding ((*>))
 
 import Development.Shake
 
-import Control.Monad (liftM)
-
-import Data.Diffusion.Common (URL(..), getEtag, curlCmd)
+import Data.Diffusion.Common (URL(..), getEtag, curlCmd, getReqEnv)
 
 opts :: ShakeOptions
 opts = shakeOptions { shakeFiles  = ".shake/"
                     , shakeVerbosity = Diagnostic }
 
-vars :: [String]
-vars = [ "MAP_URL"
-       , "BOUNDS_URL"
-       , "SEA_URL"
-       , "STYLE_URL"
-       ]
-
-data Options = Options
- { mapURL :: String
- , boundsURL :: String
- , seaURL :: String
- , styleURL :: String
- }
-
-getOptions :: Action Options
-getOptions = do
-  let opts  = mapM getEnv vars
-      opts' = liftM sequence opts
-
-  opts'' <- opts'
-
-  case opts'' of
-    Just xs -> return $ toOpts xs
-    Nothing -> fail "Failed to set a required parameter for build!"
-
-  where toOpts [ mapUrl
-               , boundsUrl
-               , seaUrl
-               , styleUrl
-               ] = Options mapUrl boundsUrl seaUrl styleUrl
-
 buildMap :: IO ()
 buildMap = shakeArgs opts $ do
-  let opts = getOptions
-
-  etagOracle <- addOracle $ \(URL url) -> liftIO $ getEtag url
+  etagOracle <- addOracle $ \(URL url) -> getEtag url
 
   want [".osm2gmap/gmapsupp.img"]
 
@@ -87,22 +52,22 @@ buildMap = shakeArgs opts $ do
   "clean" ~> removeFilesAfter ".osm2gmap" ["//*"]
 
   ".osm2gmap/bounds.zip" *> \f -> do
-    url <- liftM boundsURL opts
+    url <- getReqEnv "BOUNDS_URL"
     etagOracle $ URL url
     curlCmd url f
 
   ".osm2gmap/style.zip" *> \f -> do
-    url <- liftM styleURL opts
+    url <- getReqEnv "STYLE_URL"
     etagOracle $ URL url
     curlCmd url f
 
   ".osm2gmap/map.osm.pbf" *> \f -> do
-    url <- liftM mapURL opts
+    url <- getReqEnv "MAP_URL"
     etagOracle $ URL url
     curlCmd url f
 
   ".osm2gmap/sea.zip" *> \f -> do
-    url <- liftM seaURL opts
+    url <- getReqEnv "SEA_URL"
     etagOracle $ URL url
     curlCmd url f
 
