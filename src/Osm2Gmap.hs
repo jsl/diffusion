@@ -1,28 +1,16 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 module Main where
 
 import Prelude hiding ((*>))
 
 import Development.Shake
-import Data.Hashable (Hashable())
-import Data.Typeable (Typeable())
-import Data.Binary (Binary())
-import Control.DeepSeq (NFData)
 
 import Control.Monad (liftM)
-import GHC.IO.Exception (ExitCode (ExitSuccess))
 
-import Data.Time.Clock (getCurrentTime)
+import Data.Diffusion.Common (URL(..), getEtag, curlCmd)
 
 opts :: ShakeOptions
 opts = shakeOptions { shakeFiles  = ".shake/"
                     , shakeVerbosity = Diagnostic }
-
-curlCmd :: String -> String -> Action ()
-curlCmd url destfile = cmd "curl" [url, "-s", "-o", destfile]
-
-newtype URL = URL String deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
 
 vars :: [String]
 vars = [ "MAP_URL"
@@ -44,11 +32,11 @@ getOptions = do
       opts' = liftM sequence opts
 
   opts'' <- opts'
-  
+
   case opts'' of
     Just xs -> return $ toOpts xs
     Nothing -> fail "Failed to set a required parameter for build!"
-    
+
   where toOpts [ mapUrl
                , boundsUrl
                , seaUrl
@@ -59,15 +47,8 @@ buildMap :: IO ()
 buildMap = shakeArgs opts $ do
   let opts = getOptions
 
-  getEtag <- addOracle $ \(URL url) -> do
-    (Exit c, Stdout out) <- cmd $ "curl -I -L -s " ++ url ++ " | grep ETag"
-    if c == ExitSuccess then
-        return (out :: String)
-      else
-        do
-          c' <- liftIO getCurrentTime
-          return $ show c'
-      
+  etagOracle <- addOracle $ \(URL url) -> liftIO $ getEtag url
+
   want [".osm2gmap/gmapsupp.img"]
 
   ".osm2gmap/gmapsupp.img" *> \_ -> do
@@ -107,22 +88,22 @@ buildMap = shakeArgs opts $ do
 
   ".osm2gmap/bounds.zip" *> \f -> do
     url <- liftM boundsURL opts
-    getEtag $ URL url
+    etagOracle $ URL url
     curlCmd url f
 
   ".osm2gmap/style.zip" *> \f -> do
     url <- liftM styleURL opts
-    getEtag $ URL url
+    etagOracle $ URL url
     curlCmd url f
 
   ".osm2gmap/map.osm.pbf" *> \f -> do
     url <- liftM mapURL opts
-    getEtag $ URL url
+    etagOracle $ URL url
     curlCmd url f
 
   ".osm2gmap/sea.zip" *> \f -> do
     url <- liftM seaURL opts
-    getEtag $ URL url
+    etagOracle $ URL url
     curlCmd url f
 
   ".osm2gmap/mkgmap/dist/mkgmap.jar" *> \_ -> do

@@ -1,0 +1,67 @@
+name:                diffusion
+version:             0.1.0.0
+synopsis:            Build tools for various OSM operations
+description:
+  .
+  Diffusion is a set of tools for manipulating data from OSM.
+  Diffusion is able to transition from planet data to Garmin
+  and Basecamp formats, as well as other common output formats.
+  It is a wrapper over Osmosis and other libraries for manipulating
+  map data. Features:
+  .
+  * GenCountryMap creates a map representing a slice of a geographic territory from a large map and a polygon file.
+  .
+  * Osm2Gmap creates a garmin map from an input country map and a style file.
+                
+license:             MIT
+license-file:        LICENSE
+author:              Justin Leitgeb
+maintainer:          justin@stackbuilders.com
+copyright:           2016 Justin Leitgeb
+category:            Data
+build-type:          Simple
+cabal-version:       >=1.10
+data-dir:            styles
+
+library
+  exposed-modules: Data.Diffusion.Common
+  build-depends:         base >=4.8 && <5.0
+                       , shake
+                       , dotenv
+                       , hashable
+                       , binary
+                       , deepseq
+                       , time
+
+  hs-source-dirs:      src
+  ghc-options:         -Wall -fno-warn-unused-do-bind
+  default-language:    Haskell2010
+                                                
+executable gencountrymap
+  main-is:             GenCountryMap.hs
+  build-depends:         base >=4.8 && <5.0
+                       , shake
+                       , dotenv
+                       , hashable
+                       , binary
+                       , deepseq
+                       , diffusion
+
+  hs-source-dirs:      src
+  ghc-options:         -Wall -fno-warn-unused-do-bind
+  default-language:    Haskell2010
+
+executable osm2gmap
+  main-is:             Osm2Gmap.hs
+  build-depends:         base >=4.8 && <5.0
+                       , shake
+                       , dotenv
+                       , hashable
+                       , binary
+                       , deepseq
+                       , diffusion
+                       , time
+
+  hs-source-dirs:      src
+  ghc-options:         -Wall -fno-warn-unused-do-bind
+  default-language:    Haskell2010
