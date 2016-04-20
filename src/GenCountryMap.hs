@@ -5,11 +5,14 @@ module Main where
 import Prelude hiding ((*>))
 
 import Development.Shake
-import Data.Hashable
-import Data.Typeable
-import Data.Binary
+
+import Data.Hashable (Hashable())
+import Data.Typeable (Typeable())
+import Data.Binary (Binary())
+import Control.DeepSeq (NFData)
+
 import Control.Monad (liftM)
-import Control.DeepSeq
+
 
 opts :: ShakeOptions
 opts = shakeOptions { shakeFiles  = ".shake/"

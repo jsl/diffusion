@@ -33,7 +33,8 @@ executable osm2gmap
                        , hashable
                        , binary
                        , deepseq
-
+                       , time
+                         
   hs-source-dirs:      src
   ghc-options:         -Wall -fno-warn-unused-do-bind
   default-language:    Haskell2010

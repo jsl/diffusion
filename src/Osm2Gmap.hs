@@ -5,11 +5,15 @@ module Main where
 import Prelude hiding ((*>))
 
 import Development.Shake
-import Data.Hashable
-import Data.Typeable
-import Data.Binary
+import Data.Hashable (Hashable())
+import Data.Typeable (Typeable())
+import Data.Binary (Binary())
+import Control.DeepSeq (NFData)
+
 import Control.Monad (liftM)
-import Control.DeepSeq
+import GHC.IO.Exception (ExitCode (ExitSuccess))
+
+import Data.Time.Clock (getCurrentTime)
 
 opts :: ShakeOptions
 opts = shakeOptions { shakeFiles  = ".shake/"
@@ -50,17 +54,21 @@ getOptions = do
                , seaUrl
                , styleUrl
                ] = Options mapUrl boundsUrl seaUrl styleUrl
-          
+
 
 buildMap :: IO ()
 buildMap = shakeArgs opts $ do
   let opts = getOptions
 
   getEtag <- addOracle $ \(URL url) -> do
-    Stdout out <- cmd $ "curl -I -L -s " ++ url ++ " | grep ETag | tail -n 1"
-    -- TODO - return a random string here if no etag found?
-    return (out :: String)
-  
+    (Exit c, Stdout out) <- cmd $ "curl -I -L -s " ++ url ++ " | grep ETag"
+    if c == ExitSuccess then
+        return (out :: String)
+      else
+        do
+          c <- liftIO getCurrentTime
+          return $ show c
+      
   want [".osm2gmap/gmapsupp.img"]
 
   ".osm2gmap/gmapsupp.img" *> \_ -> do
@@ -100,7 +108,7 @@ buildMap = shakeArgs opts $ do
 
   ".osm2gmap/bounds.zip" *> \f -> do
     url <- liftM boundsURL opts
-    -- getEtag $ URL url
+    getEtag $ URL url
     curlCmd url f
 
   ".osm2gmap/style.zip" *> \f -> do
