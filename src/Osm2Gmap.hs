@@ -85,5 +85,26 @@ buildMap = shakeArgs opts $ do
     need [".osm2gmap/splitter/build.xml"]
     cmd (Cwd ".osm2gmap/splitter") "ant"
 
+  -- TODO - convert the gmapi-builder part to shake
+
+  -- , DownloadJob
+  --   { jobName = "style"
+  --   , outputName = "default.zip"
+  --   , mvSrc = "default.zip"
+  --   , mvDest = dataP <> "default.zip"
+  --   , sourceURL =
+  --     "http://osm2gmap-styles.s3-website-us-east-1.amazonaws.com/default.zip"
+  --   , unpackCmd = Nothing
+  --   , checkForUpdate = True
+  --   }
+
+    -- let gmapCmd =
+    --       "./gmapi-builder.py -t " <> filepathToText mkgmapOutputPath <>
+    --       "/osmmap.tdb" <> " -o " <> filepathToText (outputPath paths) <>
+    --       " -b " <> filepathToText mkgmapOutputPath <> "/osmmap.img " <>
+    --       filepathToText mkgmapOutputPath <> "/*.img"
+
+    -- echo $ "gmapi-builder command: " <> gmapCmd
+
 main :: IO ()
 main = buildMap
