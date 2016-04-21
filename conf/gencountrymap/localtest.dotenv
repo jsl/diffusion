@@ -1,0 +1,3 @@
+FULL_MAP_URL="http://localhost:8000/south-america-latest.osm.pbf"
+REGION_POLYGON_URL="http://localhost:8000/ecuador.poly"
+OSMOSIS_URL="http://localhost:8000/osmosis-latest.tgz"

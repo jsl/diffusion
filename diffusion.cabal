@@ -9,7 +9,7 @@ description:
   It is a wrapper over Osmosis and other libraries for manipulating
   map data. Features:
   .
-  * GenCountryMap creates a map representing a slice of a geographic territory from a large map and a polygon file.
+  * GenRegionMap creates a map representing a slice of a geographic territory from a large map and a polygon file.
   .
   * Osm2Gmap creates a garmin map from an input country map and a style file.
   .              
@@ -37,8 +37,8 @@ library
   ghc-options:         -Wall -fno-warn-unused-do-bind
   default-language:    Haskell2010
                                                 
-executable gencountrymap
-  main-is:             GenCountryMap.hs
+executable genregionmap
+  main-is:             GenRegionMap.hs
   build-depends:         base >=4.8 && <5.0
                        , shake
                        , dotenv

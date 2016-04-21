@@ -4,28 +4,28 @@ import Prelude hiding ((*>))
 
 import Development.Shake
 
-import Data.Diffusion.Common (URL(..), getEtag, curlCmd, getReqEnv)
+import Data.Diffusion.Common (URL(..), getEtag, curlCmd, getReqEnv, dataDir)
 
 opts :: ShakeOptions
-opts = shakeOptions { shakeFiles  = ".shake/"
+opts = shakeOptions { shakeFiles     = dataDir
                     , shakeVerbosity = Diagnostic }
 
 buildMap :: IO ()
 buildMap = shakeArgs opts $ do
   etagOracle <- addOracle $ \(URL url) -> getEtag url
 
-  want [".osm2gmap/gmapsupp.img"]
+  want [".diffusion/gmapsupp.img"]
 
-  ".osm2gmap/gmapsupp.img" *> \_ -> do
-    need [ ".osm2gmap/mkgmap/dist/mkgmap.jar"
-         , ".osm2gmap/split-output"
-         , ".osm2gmap/map.osm.pbf"
-         , ".osm2gmap/bounds.zip"
-         , ".osm2gmap/sea.zip"
-         , ".osm2gmap/style.zip"
+  ".diffusion/gmapsupp.img" *> \_ -> do
+    need [ ".diffusion/mkgmap/dist/mkgmap.jar"
+         , ".diffusion/split-output"
+         , ".diffusion/map.osm.pbf"
+         , ".diffusion/bounds.zip"
+         , ".diffusion/sea.zip"
+         , ".diffusion/style.zip"
          ]
 
-    cmd Shell "java -jar .osm2gmap/mkgmap/dist/mkgmap.jar"
+    cmd Shell "java -jar .diffusion/mkgmap/dist/mkgmap.jar"
       [ "--route"               -- TODO - make all switches configurable
       , "--add-pois-to-areas"
       , "--latin1"
@@ -35,55 +35,55 @@ buildMap = shakeArgs opts $ do
       , "--family-name=\"OSM Map\""
       , "--series-name=\"OSM Map\""
       , "--description=\"OSM Map\""
-      , "--precomp-sea=\".osm2gmap/sea.zip\""
-      , "--bounds=\".osm2gmap/bounds.zip\""
-      , "--output-dir=\".osm2gmap/\""
-      , "--style-file=\".osm2gmap/style.zip\""
-      , ".osm2gmap/split-output/*.osm.pbf"
+      , "--precomp-sea=\".diffusion/sea.zip\""
+      , "--bounds=\".diffusion/bounds.zip\""
+      , "--output-dir=\".diffusion/\""
+      , "--style-file=\".diffusion/style.zip\""
+      , ".diffusion/split-output/*.osm.pbf"
       ]
 
-  ".osm2gmap/split-output" *> \_ -> do
-    need [ ".osm2gmap/splitter/dist/splitter.jar" ]
-    cmd Shell "java" [ "-jar .osm2gmap/splitter/dist/splitter.jar"
-                     , "--output-dir=.osm2gmap/split-output"
-                     , ".osm2gmap/map.osm.pbf"
+  ".diffusion/split-output" *> \_ -> do
+    need [ ".diffusion/splitter/dist/splitter.jar" ]
+    cmd Shell "java" [ "-jar .diffusion/splitter/dist/splitter.jar"
+                     , "--output-dir=.diffusion/split-output"
+                     , ".diffusion/map.osm.pbf"
                      ]
 
-  "clean" ~> removeFilesAfter ".osm2gmap" ["//*"]
+  "clean" ~> removeFilesAfter ".diffusion" ["//*"]
 
-  ".osm2gmap/bounds.zip" *> \f -> do
+  ".diffusion/bounds.zip" *> \f -> do
     url <- getReqEnv "BOUNDS_URL"
     etagOracle $ URL url
     curlCmd url f
 
-  ".osm2gmap/style.zip" *> \f -> do
+  ".diffusion/style.zip" *> \f -> do
     url <- getReqEnv "STYLE_URL"
     etagOracle $ URL url
     curlCmd url f
 
-  ".osm2gmap/map.osm.pbf" *> \f -> do
+  ".diffusion/map.osm.pbf" *> \f -> do
     url <- getReqEnv "MAP_URL"
     etagOracle $ URL url
     curlCmd url f
 
-  ".osm2gmap/sea.zip" *> \f -> do
+  ".diffusion/sea.zip" *> \f -> do
     url <- getReqEnv "SEA_URL"
     etagOracle $ URL url
     curlCmd url f
 
-  ".osm2gmap/mkgmap/dist/mkgmap.jar" *> \_ -> do
-    need [ ".osm2gmap/mkgmap/build.xml" ]
-    cmd (Cwd ".osm2gmap/mkgmap") "ant"
+  ".diffusion/mkgmap/dist/mkgmap.jar" *> \_ -> do
+    need [ ".diffusion/mkgmap/build.xml" ]
+    cmd (Cwd ".diffusion/mkgmap") "ant"
 
-  ".osm2gmap/mkgmap/build.xml" *> \_ ->
-    cmd "svn" ["co", "http://svn.mkgmap.org.uk/mkgmap/trunk",  ".osm2gmap/mkgmap"]
+  ".diffusion/mkgmap/build.xml" *> \_ ->
+    cmd "svn" ["co", "http://svn.mkgmap.org.uk/mkgmap/trunk",  ".diffusion/mkgmap"]
 
-  ".osm2gmap/splitter/build.xml" *> \_ ->
-    cmd "svn" ["co", "http://svn.mkgmap.org.uk/splitter/trunk",  ".osm2gmap/splitter"]
+  ".diffusion/splitter/build.xml" *> \_ ->
+    cmd "svn" ["co", "http://svn.mkgmap.org.uk/splitter/trunk",  ".diffusion/splitter"]
 
-  ".osm2gmap/splitter/dist/splitter.jar" *> \_ -> do
-    need [".osm2gmap/splitter/build.xml"]
-    cmd (Cwd ".osm2gmap/splitter") "ant"
+  ".diffusion/splitter/dist/splitter.jar" *> \_ -> do
+    need [".diffusion/splitter/build.xml"]
+    cmd (Cwd ".diffusion/splitter") "ant"
 
   -- TODO - convert the gmapi-builder part to shake
 

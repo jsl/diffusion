@@ -6,18 +6,27 @@ Description: Common functions for the Diffusion program.
 -}
 module Data.Diffusion.Common where
 
-import Development.Shake (Action(), getEnv, cmd, Exit(..), Stdout(..), liftIO)
+import Development.Shake ( Action()
+                         , getEnv
+                         , cmd
+                         , Exit(..)
+                         , Stdout(..)
+                         , liftIO
+                         , CmdOption(Shell) )
 
 import Data.Hashable (Hashable())
 import Data.Typeable (Typeable())
 import Data.Binary (Binary())
 import Control.DeepSeq (NFData)
 
-import GHC.IO.Exception (ExitCode (ExitSuccess))
+import GHC.IO.Exception (ExitCode (..))
 
 import Data.Time.Clock (getCurrentTime)
 
 newtype URL = URL String deriving (Show,Typeable,Eq,Hashable,Binary,NFData)
+
+dataDir :: String
+dataDir = ".diffusion/"
 
 -- | Retrieves the given environment variable, or fails if
 -- it is not found.
@@ -41,10 +50,9 @@ curlCmd url destfile = cmd "curl" [url, "-s", "-o", destfile]
 getEtag :: String -- ^ The URL of the file
         -> Action String -- ^ The Etag or UTC Time that this function was called
 getEtag url = do
-  (Exit c, Stdout out) <- cmd $ "curl -I -L -s " ++ url ++ " | grep ETag"
-  if c == ExitSuccess then
-    return (out :: String)
-   else
-    do
+  (Exit c, Stdout out) <- cmd Shell $ "curl -I -L -s " ++ url ++ " | grep ETag"
+  case c of
+    ExitSuccess -> return out
+    ExitFailure _ -> do
       c' <- liftIO getCurrentTime
       return $ show c'

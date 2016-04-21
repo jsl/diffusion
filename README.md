@@ -11,7 +11,12 @@ This project can be easily run using stack. To install Stack,
 
 ## Usage
 
-TODO - fill in example commands to run and configure this program.
+### Generating an Ecuadorian map from the Planet
+
+```
+stack build
+stack exec -- dotenv -f conf/genregionmap/ecuador-from-latam.dotenv gencountrymap
+```
 
 ## Author
 

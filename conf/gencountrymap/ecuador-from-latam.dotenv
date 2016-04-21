@@ -1,0 +1,3 @@
+FULL_MAP_URL="http://download.geofabrik.de/south-america-latest.osm.pbf"
+REGION_POLYGON_URL="http://download.geofabrik.de/south-america/ecuador.poly"
+OSMOSIS_URL="http://bretth.dev.openstreetmap.org/osmosis-build/osmosis-latest.tgz"
