@@ -15,7 +15,7 @@ This project can be easily run using stack. To install Stack,
 
 ```
 stack build
-stack exec -- dotenv -f conf/genregionmap/ecuador-from-latam.dotenv gencountrymap
+stack exec -- dotenv -f conf/genregionmap/ecuador-from-latam.dotenv genregionmap
 ```
 
 ## Author
