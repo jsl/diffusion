@@ -13,7 +13,7 @@ opts = shakeOptions { shakeFiles     = dataDir
 buildMap :: IO ()
 buildMap = shakeArgs opts $ do
   etagOracle <- addOracle $ \(URL url) -> getEtag url
-  
+
   want [".diffusion/sub-map.osm.pbf"]
 
   ".diffusion/sub-map.osm.pbf" *> \_ -> do
@@ -31,10 +31,6 @@ buildMap = shakeArgs opts $ do
       , "file=\".diffusion/sub-map.osm.pbf\""
       ]
 
-  -- "etagtest" ~> do
-  --   r <- getEtag "http://download.geofabrik.de/south-america-latest.osm.pbf"
-  --   putNormal $ "hey got: " ++ show r
-
   "clean" ~> removeFilesAfter ".diffusion" ["//*"]
 
   ".diffusion/full-map.osm.pbf" *> \f -> do
@@ -49,7 +45,7 @@ buildMap = shakeArgs opts $ do
   ".diffusion/osmosis/bin/osmosis" *> \_ -> do
     need [".diffusion/osmosis-latest.tgz"]
     cmd "tar" ["xvzf", ".diffusion/osmosis-latest.tgz", "-C", ".diffusion/osmosis"]
-  
+
   ".diffusion/osmosis-latest.tgz" *> \f -> do
     ourl <- getReqEnv "OSMOSIS_URL"
     curlCmd ourl f

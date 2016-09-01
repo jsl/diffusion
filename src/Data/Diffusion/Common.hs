@@ -18,6 +18,8 @@ import Data.Hashable (Hashable())
 import Data.Typeable (Typeable())
 import Data.Binary (Binary())
 import Control.DeepSeq (NFData)
+import Data.List (find)
+import Data.List (isPrefixOf)
 
 import GHC.IO.Exception (ExitCode (..))
 
@@ -44,15 +46,26 @@ curlCmd :: String -- ^ The URL to fetch
         -> Action ()
 curlCmd url destfile = cmd "curl" [url, "-s", "-o", destfile]
 
+isNewline :: Char -> Bool
+isNewline c = (c == '\r') || (c == '\n')
+
+rstrip :: [Char] -> [Char]
+rstrip = reverse . dropWhile isNewline . reverse
+
 -- | Fetches the ETag at the given URL. If no ETag is given by the server,
 --  we use the UTC Time that the file was retrieved, so the file will be pretty
 -- much downloaded every time.
 getEtag :: String -- ^ The URL of the file
         -> Action String -- ^ The Etag or UTC Time that this function was called
 getEtag url = do
-  (Exit c, Stdout out) <- cmd Shell $ "curl -I -L -s " ++ url ++ " | grep ETag"
-  case c of
-    ExitSuccess -> return out
-    ExitFailure _ -> do
+  (Exit c, Stdout out) <- cmd Shell $ "curl -I -L -s " ++ url
+  let etag = find (isPrefixOf "ETag") $ lines out
+
+  case (c, etag) of
+    (ExitSuccess, Just tag) -> return $ rstrip tag
+    (_, _)  -> handleFailure
+
+  where
+    handleFailure = do
       c' <- liftIO getCurrentTime
       return $ show c'
